@@ -4485,12 +4485,13 @@ function authKey(email){return "user_"+email.toLowerCase().replace(/[^a-z0-9]/g,
 function patientKey(email){return "patients_"+email.toLowerCase().replace(/[^a-z0-9]/g,"_");}
 
 async function authSignup(){
-  authLoading=true;authErr="";renderAuth();
+  // Read values BEFORE renderAuth() wipes the DOM
   var email=(document.getElementById("auth-email")||{}).value||"";
   var name=(document.getElementById("auth-name")||{}).value||"";
   var pw=(document.getElementById("auth-pw")||{}).value||"";
-  if(!email.trim()||!name.trim()||!pw){authErr="All fields are required.";authLoading=false;renderAuth();return;}
-  if(pw.length<6){authErr="Password must be at least 6 characters.";authLoading=false;renderAuth();return;}
+  if(!email.trim()||!name.trim()||!pw){authErr="All fields are required.";renderAuth();return;}
+  if(pw.length<6){authErr="Password must be at least 6 characters.";renderAuth();return;}
+  authLoading=true;authErr="";renderAuth();
   try{
     var r=await sbFetch("POST","/auth/v1/signup",{email:email.trim(),password:pw,data:{name:name.trim()}});
     if(!r.ok){
@@ -4508,10 +4509,11 @@ async function authSignup(){
 }
 
 async function authLogin(){
-  authLoading=true;authErr="";renderAuth();
+  // Read values BEFORE renderAuth() wipes the DOM
   var email=(document.getElementById("auth-email")||{}).value||"";
   var pw=(document.getElementById("auth-pw")||{}).value||"";
-  if(!email.trim()||!pw){authErr="Email and password are required.";authLoading=false;renderAuth();return;}
+  if(!email.trim()||!pw){authErr="Email and password are required.";renderAuth();return;}
+  authLoading=true;authErr="";renderAuth();
   try{
     var r=await sbFetch("POST","/auth/v1/token?grant_type=password",{email:email.trim(),password:pw});
     if(!r.ok){
