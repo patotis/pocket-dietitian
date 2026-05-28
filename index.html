@@ -4564,47 +4564,48 @@ function renderAuth(){
     overlay.style.display="none";
     var badge=document.getElementById("user-badge");
     if(badge)badge.textContent=authUser.name.split(" ")[0];
-    render();
-    return;
+    render();return;
   }
   overlay.style.display="flex";
   var inner=document.getElementById("auth-inner");
   if(!inner){setTimeout(renderAuth,50);return;}
   var isLogin=authScreen==="login";
-  var errHtml=authErr
-    ? "<div style='background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:9px 12px;margin-bottom:14px;color:#f87171;font-size:12px;font-family:monospace'>"+authErr+"</div>"
-    : "";
-  var nameField=!isLogin
-    ? "<div style='margin-bottom:12px'><label style='display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px'>YOUR NAME</label><input id='auth-name' type='text' placeholder='Dr. Maria Papadaki' style='width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box'/></div>"
-    : "";
-  var btnLabel=authLoading ? "Checking\u2026" : (isLogin ? "Sign In \u2192" : "Create Account \u2192");
-  var btnStyle="width:100%;padding:13px;background:"+(authLoading?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#38bdf8,#0ea5e9)")+";border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer";
-  var onClickFn=isLogin ? "authLogin()" : "authSignup()";
-  var tabActive="background:#38bdf8;color:#04101a;font-weight:700";
-  var tabInactive="background:rgba(255,255,255,0.03);color:#4a6070";
+  // Build HTML safely without nested quote escaping
+  var err=authErr?'<div style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:9px 12px;margin-bottom:14px;color:#f87171;font-size:12px;font-family:monospace">'+authErr+'</div>':"";
+  var nameF=!isLogin?'<div style="margin-bottom:12px"><label style="display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px">YOUR NAME</label><input id="auth-name" type="text" placeholder="Dr. Maria Papadaki" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box"/></div>':"";
+  var tA="flex:1;padding:9px;border:none;font-size:12px;font-family:monospace;cursor:pointer;background:#38bdf8;color:#04101a;font-weight:700";
+  var tI="flex:1;padding:9px;border:none;font-size:12px;font-family:monospace;cursor:pointer;background:rgba(255,255,255,0.03);color:#4a6070";
+  var btnTxt=authLoading?"Checking...":(isLogin?"Sign In":"Create Account");
+  var btnBg=authLoading?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#38bdf8,#0ea5e9)";
   inner.innerHTML=
-    "<div style='text-align:center;margin-bottom:24px'>"+
-      "<div style='font-size:36px;margin-bottom:8px'>\uD83E\uDE7A</div>"+
-      "<div style='font-size:22px;font-family:serif;color:#dce9f5;margin-bottom:4px'>Pocket Dietitian</div>"+
-      "<div style='font-size:10px;font-family:monospace;color:#2d4558;letter-spacing:2px'>CLINICAL NUTRITION TOOL</div>"+
-    "</div>"+
-    "<div style='display:flex;gap:0;margin-bottom:20px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;overflow:hidden'>"+
-      "<button onclick='switchAuthTab(\"login\")' style='flex:1;padding:9px;border:none;font-size:12px;font-family:monospace;cursor:pointer;"+(isLogin?tabActive:tabInactive)+"'>Sign In</button>"+
-      "<button onclick='switchAuthTab(\"signup\")' style='flex:1;padding:9px;border:none;font-size:12px;font-family:monospace;cursor:pointer;"+(!isLogin?tabActive:tabInactive)+"'>Create Account</button>"+
-    "</div>"+
-    errHtml+
-    nameField+
-    "<div style='margin-bottom:12px'><label style='display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px'>EMAIL</label>"+
-    "<input id='auth-email' type='email' placeholder='your@email.com' style='width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box' onkeydown='if(event.key===\"Enter\")document.getElementById(\"auth-pw\").focus()'/></div>"+
-    "<div style='margin-bottom:20px'><label style='display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px'>PASSWORD</label>"+
-    "<input id='auth-pw' type='password' placeholder='Minimum 6 characters' onkeydown='if(event.key===\"Enter\")"+onClickFn+"' style='width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box'/></div>"+
-    "<button onclick='"+onClickFn+"' "+(authLoading?"disabled":"")+
-      " style='"+btnStyle+"'>"+btnLabel+"</button>"+
-    "<p style='text-align:center;font-size:10px;color:#1e3045;font-family:monospace;margin-top:14px;line-height:1.5'>Patient data persists across sessions. Each account has its own private database.</p>";
-  setTimeout(function(){
-    var el=document.getElementById(!isLogin?"auth-name":"auth-email");
-    if(el)el.focus();
-  },60);
+    '<div style="text-align:center;margin-bottom:24px">'+
+      '<div style="font-size:36px;margin-bottom:8px">&#x1FA7A;</div>'+
+      '<div style="font-size:22px;font-family:serif;color:#dce9f5;margin-bottom:4px">Pocket Dietitian</div>'+
+      '<div style="font-size:10px;font-family:monospace;color:#2d4558;letter-spacing:2px">CLINICAL NUTRITION TOOL</div>'+
+    '</div>'+
+    '<div style="display:flex;margin-bottom:20px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;overflow:hidden">'+
+      '<button id="tab-login" style="'+( isLogin?tA:tI )+'">Sign In</button>'+
+      '<button id="tab-signup" style="'+( !isLogin?tA:tI )+'">Create Account</button>'+
+    '</div>'+
+    err+nameF+
+    '<div style="margin-bottom:12px"><label style="display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px">EMAIL</label>'+
+    '<input id="auth-email" type="email" placeholder="your@email.com" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box"/></div>'+
+    '<div style="margin-bottom:20px"><label style="display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px">PASSWORD</label>'+
+    '<input id="auth-pw" type="password" placeholder="Minimum 6 characters" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box"/></div>'+
+    '<button id="auth-submit" style="width:100%;padding:13px;background:'+btnBg+';border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer">'+btnTxt+'</button>'+
+    '<p style="text-align:center;font-size:10px;color:#1e3045;font-family:monospace;margin-top:14px;line-height:1.5">Data stored securely in the cloud. Works on any device.</p>';
+  // Attach events AFTER setting innerHTML (avoids all onclick escaping issues)
+  var tLogin=document.getElementById("tab-login");
+  var tSignup=document.getElementById("tab-signup");
+  var submit=document.getElementById("auth-submit");
+  var pwField=document.getElementById("auth-pw");
+  var emailField=document.getElementById("auth-email");
+  if(tLogin)tLogin.onclick=function(){switchAuthTab("login");};
+  if(tSignup)tSignup.onclick=function(){switchAuthTab("signup");};
+  if(submit)submit.onclick=isLogin?authLogin:authSignup;
+  if(pwField)pwField.onkeydown=function(e){if(e.key==="Enter")(isLogin?authLogin:authSignup)();};
+  if(emailField)emailField.onkeydown=function(e){if(e.key==="Enter"){var pw=document.getElementById("auth-pw");if(pw)pw.focus();}};
+  setTimeout(function(){var el=document.getElementById(isLogin?"auth-email":"auth-name")||document.getElementById("auth-email");if(el)el.focus();},60);
 }
 
 // ── Page builder ─────────────────────────────────────────────────────────
