@@ -224,6 +224,18 @@ input{font-family:'DM Sans',sans-serif}
   <div id="auth-inner" style="width:100%;max-width:380px;background:#0a1825;border:1px solid rgba(56,189,248,0.18);border-radius:16px;padding:28px 24px;box-shadow:0 40px 100px rgba(0,0,0,0.9)"></div>
 </div>
 <script>
+// Supabase config
+var SB_URL="https://llxtopdyjbpwyetawump.supabase.co";
+var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxseHRvcGR5amJwd3lldGF3dW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDk0MzUsImV4cCI6MjA5NTUyNTQzNX0.IVJcz2Fn8Q27a7BtJyhx-3faahZ9DeMZtyqmlUFzGcM";
+async function sbFetch(method,path,data,token){
+  var h={"apikey":SB_KEY,"Authorization":"Bearer "+(token||SB_KEY),"Content-Type":"application/json"};
+  if(data&&method!=="GET")h["Prefer"]="return=representation";
+  var o={method:method,headers:h};
+  if(data)o.body=JSON.stringify(data);
+  var res=await fetch(SB_URL+path,o);
+  var t=await res.text();
+  return{data:t?JSON.parse(t):{},ok:res.ok,status:res.status};
+}
 // ═══════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════
@@ -4480,13 +4492,17 @@ async function authSignup(){
   if(!email.trim()||!name.trim()||!pw){authErr="All fields are required.";authLoading=false;renderAuth();return;}
   if(pw.length<6){authErr="Password must be at least 6 characters.";authLoading=false;renderAuth();return;}
   try{
-    var existing=null;
-    try{existing=await window.storage.get(authKey(email));}catch(e){}
-    if(existing){authErr="Account already exists. Please sign in.";authLoading=false;renderAuth();return;}
-    var hash=btoa(unescape(encodeURIComponent(pw+"::pd2025")));
-    await window.storage.set(authKey(email),JSON.stringify({email:email.trim(),name:name.trim(),hash:hash}));
-    authUser={email:email.trim(),name:name.trim()};
+    var r=await sbFetch("POST","/auth/v1/signup",{email:email.trim(),password:pw,data:{name:name.trim()}});
+    if(!r.ok){
+      var msg=r.data.msg||r.data.message||r.data.error_description||"Sign up failed.";
+      if(msg.toLowerCase().includes("already"))msg="Account already exists. Please sign in.";
+      authErr=msg;authLoading=false;renderAuth();return;
+    }
+    var token=r.data.access_token;
+    var uid=r.data.user.id;
+    authUser={email:email.trim(),name:name.trim(),id:uid,token:token};
     authScreen="app";authLoading=false;
+    localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:name.trim(),id:uid,token:token,refresh:r.data.refresh_token}));
     await dbLoad();
   }catch(e){authErr="Sign up failed: "+e.message;authLoading=false;renderAuth();}
 }
@@ -4497,22 +4513,28 @@ async function authLogin(){
   var pw=(document.getElementById("auth-pw")||{}).value||"";
   if(!email.trim()||!pw){authErr="Email and password are required.";authLoading=false;renderAuth();return;}
   try{
-    var rec=null;
-    try{rec=await window.storage.get(authKey(email));}catch(e){}
-    if(!rec){authErr="No account found. Please create an account.";authLoading=false;renderAuth();return;}
-    var user=JSON.parse(rec.value);
-    var hash=btoa(unescape(encodeURIComponent(pw+"::pd2025")));
-    if(user.hash!==hash){authErr="Incorrect password. Please try again.";authLoading=false;renderAuth();return;}
-    authUser={email:user.email,name:user.name};
+    var r=await sbFetch("POST","/auth/v1/token?grant_type=password",{email:email.trim(),password:pw});
+    if(!r.ok){
+      var msg=r.data.error_description||r.data.msg||r.data.message||"Sign in failed.";
+      if(msg.toLowerCase().includes("invalid"))msg="Incorrect email or password.";
+      authErr=msg;authLoading=false;renderAuth();return;
+    }
+    var token=r.data.access_token;
+    var uid=r.data.user.id;
+    var uname=(r.data.user.user_metadata&&r.data.user.user_metadata.name)||email.split("@")[0];
+    authUser={email:email.trim(),name:uname,id:uid,token:token};
     authScreen="app";authLoading=false;
+    localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:uname,id:uid,token:token,refresh:r.data.refresh_token}));
     await dbLoad();
-  }catch(e){authErr="Login failed: "+e.message;authLoading=false;renderAuth();}
+  }catch(e){authErr="Sign in failed: "+e.message;authLoading=false;renderAuth();}
 }
 
 function authLogout(){
-  authUser=null;authScreen="login";authErr="";authEmailVal="";
+  authUser=null;authScreen="login";authErr="";
   _patientCache=null;
-  document.getElementById("auth-overlay").style.display="flex";
+  localStorage.removeItem("pd_session");
+  var ov=document.getElementById("auth-overlay");
+  if(ov)ov.style.display="flex";
   renderAuth();
 }
 
@@ -4866,9 +4888,26 @@ async function doShare(){
 // INIT
 // ═══════════════════════════════════════════════
 function switchAuthTab(tab){authScreen=tab;authErr="";renderAuth();}
-// DOM is ready — show auth login screen
-document.addEventListener("DOMContentLoaded",function(){renderAuth();});
-if(document.readyState==="complete"||document.readyState==="interactive"){setTimeout(renderAuth,0);}
+async function tryRestoreSession(){
+  try{
+    var saved=localStorage.getItem("pd_session");
+    if(!saved){renderAuth();return;}
+    var sess=JSON.parse(saved);
+    var r=await sbFetch("POST","/auth/v1/token?grant_type=refresh_token",{refresh_token:sess.refresh});
+    if(r.ok){
+      authUser={email:sess.email,name:sess.name,id:sess.id,token:r.data.access_token};
+      localStorage.setItem("pd_session",JSON.stringify({email:sess.email,name:sess.name,id:sess.id,token:r.data.access_token,refresh:r.data.refresh_token}));
+      authScreen="app";
+      await dbLoad();
+    }else{
+      localStorage.removeItem("pd_session");
+      renderAuth();
+    }
+  }catch(e){localStorage.removeItem("pd_session");renderAuth();}
+}
+// DOM ready — try restore session, else show login
+document.addEventListener("DOMContentLoaded",function(){tryRestoreSession();});
+if(document.readyState==="complete"||document.readyState==="interactive"){setTimeout(tryRestoreSession,0);}
 
 // ── Persistent DB helpers ─────────────────────────────────────────────────
 var patientSearch="";
@@ -4882,20 +4921,33 @@ function dbGetCache(){return _patientCache||[];}
 async function dbLoad(){
   if(!authUser){render();return;}
   try{
-    var rec=null;
-    try{rec=await window.storage.get(patientKey(authUser.email));}catch(e){}
-    _patientCache=rec?JSON.parse(rec.value):[];
-  }catch(e){_patientCache=[];}
+    var r=await sbFetch("GET","/rest/v1/patient_data?select=patients&user_id=eq."+encodeURIComponent(authUser.id),null,authUser.token);
+    if(r.ok&&Array.isArray(r.data)&&r.data.length>0){
+      _patientCache=r.data[0].patients||[];
+    }else{
+      var local=localStorage.getItem(patientKey(authUser.email));
+      _patientCache=local?JSON.parse(local):[];
+    }
+  }catch(e){
+    var local=localStorage.getItem(patientKey(authUser.email));
+    _patientCache=local?JSON.parse(local):[];
+  }
   updatePatientNav();
   render();
 }
 async function dbPersist(){
   if(!authUser)return;
-  try{await window.storage.set(patientKey(authUser.email),JSON.stringify(_patientCache||[]));}
-  catch(e){console.warn("Persist failed:",e);}
+  var data=_patientCache||[];
+  try{localStorage.setItem(patientKey(authUser.email),JSON.stringify(data));}catch(e){}
+  try{
+    await sbFetch("POST","/rest/v1/patient_data",
+      {user_id:authUser.id,email:authUser.email,patients:data},
+      authUser.token
+    );
+  }catch(e){console.warn("Cloud save failed, data saved locally:",e.message);}
 }
 function dbGet(){return _patientCache||[];}
-function dbSave(patients){_patientCache=patients;dbPersist();}
+function dbSave(patients){_patientCache=patients;dbPersist().catch(function(e){console.warn("Save error:",e);});}
 function dbAdd(patient){
   var patients=dbGet();
   patient.id=Date.now()+"_"+Math.random().toString(36).slice(2,7);
