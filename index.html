@@ -4499,11 +4499,25 @@ async function authSignup(){
       if(msg.toLowerCase().includes("already"))msg="Account already exists. Please sign in.";
       authErr=msg;authLoading=false;renderAuth();return;
     }
-    var token=r.data.access_token;
-    var uid=r.data.user.id;
+    // Handle both email-confirm-ON and email-confirm-OFF response shapes
+    var user=r.data.user||{};
+    var session=r.data.session||r.data;
+    var token=session.access_token||null;
+    var refresh=session.refresh_token||null;
+    var uid=user.id||(r.data.id)||null;
+    // If email confirmation is required, Supabase returns user but no token
+    if(!token&&!uid){
+      authErr="Please check your email and confirm your account, then sign in.";
+      authLoading=false;renderAuth();return;
+    }
+    if(!token){
+      // Email confirmation is ON — account created, ask user to confirm
+      authErr="Account created! Please check your email to confirm, then Sign In.";
+      authScreen="login";authLoading=false;renderAuth();return;
+    }
     authUser={email:email.trim(),name:name.trim(),id:uid,token:token};
     authScreen="app";authLoading=false;
-    localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:name.trim(),id:uid,token:token,refresh:r.data.refresh_token}));
+    localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:name.trim(),id:uid,token:token,refresh:refresh}));
     await dbLoad();
   }catch(e){authErr="Sign up failed: "+e.message;authLoading=false;renderAuth();}
 }
@@ -4522,8 +4536,10 @@ async function authLogin(){
       authErr=msg;authLoading=false;renderAuth();return;
     }
     var token=r.data.access_token;
-    var uid=r.data.user.id;
-    var uname=(r.data.user.user_metadata&&r.data.user.user_metadata.name)||email.split("@")[0];
+    var user=r.data.user||{};
+    var uid=user.id||null;
+    var meta=user.user_metadata||{};
+    var uname=meta.name||meta.full_name||email.split("@")[0];
     authUser={email:email.trim(),name:uname,id:uid,token:token};
     authScreen="app";authLoading=false;
     localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:uname,id:uid,token:token,refresh:r.data.refresh_token}));
