@@ -4532,7 +4532,8 @@ async function authLogin(){
     var r=await sbFetch("POST","/auth/v1/token?grant_type=password",{email:email.trim(),password:pw});
     if(!r.ok){
       var msg=r.data.error_description||r.data.msg||r.data.message||"Sign in failed.";
-      if(msg.toLowerCase().includes("invalid"))msg="Incorrect email or password.";
+      if(msg.toLowerCase().includes("invalid")||msg.toLowerCase().includes("credentials"))msg="Incorrect email or password.";
+      if(msg.toLowerCase().includes("email not confirmed"))msg="Please confirm your email first, then try signing in.";
       authErr=msg;authLoading=false;renderAuth();return;
     }
     var token=r.data.access_token;
@@ -4543,7 +4544,7 @@ async function authLogin(){
     authUser={email:email.trim(),name:uname,id:uid,token:token};
     authScreen="app";authLoading=false;
     localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:uname,id:uid,token:token,refresh:r.data.refresh_token}));
-    await dbLoad();
+    try{await dbLoad();}catch(e){console.error("dbLoad failed:",e);render();}
   }catch(e){authErr="Sign in failed: "+e.message;authLoading=false;renderAuth();}
 }
 
@@ -4938,18 +4939,23 @@ function dbGetCache(){return _patientCache||[];}
 
 async function dbLoad(){
   if(!authUser){render();return;}
+  _patientCache=[];
   try{
-    var r=await sbFetch("GET","/rest/v1/patient_data?select=patients&user_id=eq."+encodeURIComponent(authUser.id),null,authUser.token);
-    if(r.ok&&Array.isArray(r.data)&&r.data.length>0){
-      _patientCache=r.data[0].patients||[];
-    }else{
-      var local=localStorage.getItem(patientKey(authUser.email));
-      _patientCache=local?JSON.parse(local):[];
+    if(authUser.id){
+      var r=await sbFetch("GET","/rest/v1/patient_data?select=patients&user_id=eq."+encodeURIComponent(authUser.id),null,authUser.token);
+      if(r.ok&&Array.isArray(r.data)&&r.data.length>0){
+        _patientCache=r.data[0].patients||[];
+      }
     }
-  }catch(e){
+  }catch(e){console.warn("Cloud load failed, using local:",e.message);}
+  // Always merge with localStorage backup
+  try{
     var local=localStorage.getItem(patientKey(authUser.email));
-    _patientCache=local?JSON.parse(local):[];
-  }
+    if(local){
+      var localData=JSON.parse(local);
+      if(!_patientCache.length&&localData.length)_patientCache=localData;
+    }
+  }catch(e){}
   updatePatientNav();
   render();
 }
@@ -4957,12 +4963,19 @@ async function dbPersist(){
   if(!authUser)return;
   var data=_patientCache||[];
   try{localStorage.setItem(patientKey(authUser.email),JSON.stringify(data));}catch(e){}
+  if(!authUser.id)return;
   try{
-    await sbFetch("POST","/rest/v1/patient_data",
-      {user_id:authUser.id,email:authUser.email,patients:data},
-      authUser.token
-    );
-  }catch(e){console.warn("Cloud save failed, data saved locally:",e.message);}
+    await fetch(SB_URL+"/rest/v1/patient_data",{
+      method:"POST",
+      headers:{
+        "apikey":SB_KEY,
+        "Authorization":"Bearer "+authUser.token,
+        "Content-Type":"application/json",
+        "Prefer":"resolution=merge-duplicates,return=minimal"
+      },
+      body:JSON.stringify({user_id:authUser.id,email:authUser.email,patients:data})
+    });
+  }catch(e){console.warn("Cloud save failed, saved locally:",e.message);}
 }
 function dbGet(){return _patientCache||[];}
 function dbSave(patients){_patientCache=patients;dbPersist().catch(function(e){console.warn("Save error:",e);});}
