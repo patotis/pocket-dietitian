@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pocket Dietitian — Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#050d16;color:#dce9f5;font-family:'DM Sans',sans-serif}
+.wrap{max-width:700px;margin:0 auto;padding:24px 16px 60px}
+h1{font-family:serif;font-size:26px;color:#dce9f5;margin-bottom:4px}
+.sub{font-size:11px;font-family:monospace;color:#2d4558;letter-spacing:1.5px;margin-bottom:28px}
+.card{background:#0a1825;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:22px;margin-bottom:16px}
+.card-title{font-size:10px;font-family:monospace;color:#38bdf8;letter-spacing:2px;margin-bottom:14px}
+input,textarea{width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box;font-family:sans-serif}
+input:focus,textarea:focus{border-color:#38bdf8}
+label{display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px;margin-top:12px}
+label:first-child{margin-top:0}
+.btn{padding:11px 20px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:sans-serif}
+.btn-primary{background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#04101a;width:100%;margin-top:14px}
+.btn-sm{padding:6px 14px;font-size:11px;font-family:monospace;font-weight:700;border-radius:7px;cursor:pointer;border:none}
+.btn-green{background:rgba(74,222,128,0.12);color:#4ade80;border:1px solid rgba(74,222,128,0.25)}
+.btn-red{background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2)}
+.btn-cyan{background:rgba(56,189,248,0.1);color:#38bdf8;border:1px solid rgba(56,189,248,0.2)}
+.err{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:9px 12px;color:#f87171;font-size:12px;font-family:monospace;margin-bottom:12px;display:none}
+.ok{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:9px 12px;color:#4ade80;font-size:12px;font-family:monospace;margin-bottom:12px;display:none}
+.table{width:100%;border-collapse:collapse;font-size:12px}
+.table th{text-align:left;font-family:monospace;font-size:9px;color:#3d5a70;letter-spacing:1px;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.table td{padding:10px 6px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-family:monospace}
+.badge-green{background:rgba(74,222,128,0.1);color:#4ade80}
+.badge-yellow{background:rgba(251,191,36,0.1);color:#fbbf24}
+.badge-red{background:rgba(248,113,113,0.1);color:#f87171}
+.badge-gray{background:rgba(255,255,255,0.05);color:#3d5a70}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+#app-screen{display:none}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:4px}
+.stat{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center}
+.stat-val{font-size:24px;font-weight:700;font-family:serif;color:#38bdf8}
+.stat-lbl{font-size:9px;font-family:monospace;color:#3d5a70;margin-top:3px}
+.invite-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:6px}
+.code{font-family:monospace;font-size:13px;letter-spacing:1px;color:#22d3ee}
+.tabs{display:flex;gap:6px;margin-bottom:20px}
+.tab{padding:8px 16px;border-radius:8px;font-size:11px;font-family:monospace;cursor:pointer;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#3d5a70;transition:all .2s}
+.tab.active{background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.3);color:#38bdf8}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div style="width:100%;max-width:360px;padding:16px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:32px;margin-bottom:8px">🔐</div>
+      <div style="font-size:20px;font-family:serif;color:#dce9f5;margin-bottom:4px">Admin Panel</div>
+      <div style="font-size:10px;font-family:monospace;color:#2d4558;letter-spacing:2px">POCKET DIETITIAN</div>
+    </div>
+    <div id="login-err" class="err"></div>
+    <label>ADMIN PASSWORD</label>
+    <input id="admin-pw" type="password" placeholder="Enter master password" onkeydown="if(event.key==='Enter')adminLogin()"/>
+    <button class="btn btn-primary" onclick="adminLogin()">Access Admin Panel →</button>
+    <p style="text-align:center;font-size:10px;color:#1e3045;font-family:monospace;margin-top:16px">Restricted access · Pocket Dietitian</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h1>Admin Panel</h1>
+      <button class="btn-sm btn-red" onclick="adminLogout()">Sign Out</button>
+    </div>
+    <div class="sub">POCKET DIETITIAN · MASTER CONTROL</div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-title">📊 OVERVIEW</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-val" id="stat-users">—</div><div class="stat-lbl">USERS</div></div>
+        <div class="stat"><div class="stat-val" id="stat-invites">—</div><div class="stat-lbl">INVITES SENT</div></div>
+        <div class="stat"><div class="stat-val" id="stat-pending">—</div><div class="stat-lbl">PENDING</div></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tab-users-btn" onclick="showTab('users')">👥 Users</button>
+      <button class="tab" id="tab-invites-btn" onclick="showTab('invites')">🎟️ Invite Codes</button>
+      <button class="tab" id="tab-new-btn" onclick="showTab('new')">✉️ Send Invite</button>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="tab-users">
+      <div class="card">
+        <div class="card-title">ALL REGISTERED USERS</div>
+        <div id="users-err" class="err"></div>
+        <div id="users-list"><div style="color:#2d4558;font-size:12px;font-family:monospace;text-align:center;padding:20px">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- INVITES TAB -->
+    <div id="tab-invites" style="display:none">
+      <div class="card">
+        <div class="card-title">INVITE CODES</div>
+        <div id="invites-err" class="err"></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn-sm btn-green" onclick="generateInvite(7)">+ 7-day code</button>
+          <button class="btn-sm btn-green" onclick="generateInvite(30)">+ 30-day code</button>
+          <button class="btn-sm btn-cyan" onclick="loadInvites()">↺ Refresh</button>
+        </div>
+        <div id="invites-list"><div style="color:#2d4558;font-size:12px;font-family:monospace;text-align:center;padding:20px">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- SEND INVITE TAB -->
+    <div id="tab-new" style="display:none">
+      <div class="card">
+        <div class="card-title">✉️ SEND INVITE BY EMAIL</div>
+        <div id="send-err" class="err"></div>
+        <div id="send-ok" class="ok"></div>
+        <label>RECIPIENT NAME</label>
+        <input id="inv-name" type="text" placeholder="Dr. Maria Papadaki"/>
+        <label>RECIPIENT EMAIL</label>
+        <input id="inv-email" type="email" placeholder="colleague@clinic.com"/>
+        <label>EXPIRES IN</label>
+        <select id="inv-days" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none">
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+          <option value="30">30 days</option>
+        </select>
+        <button class="btn btn-primary" onclick="sendInvite()">Generate Code & Copy Invite Link →</button>
+        <div id="inv-result" style="display:none;margin-top:14px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.2);border-radius:9px;padding:14px">
+          <div style="font-size:9px;font-family:monospace;color:#22d3ee;margin-bottom:8px">INVITE LINK — COPY AND SEND TO RECIPIENT</div>
+          <div id="inv-link" style="font-family:monospace;font-size:11px;color:#dce9f5;word-break:break-all;margin-bottom:10px"></div>
+          <button class="btn-sm btn-cyan" onclick="copyInviteLink()">📋 Copy Link</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var SB_URL="https://llxtopdyjbpwyetawump.supabase.co";
+var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxseHRvcGR5amJwd3lldGF3dW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDk0MzUsImV4cCI6MjA5NTUyNTQzNX0.IVJcz2Fn8Q27a7BtJyhx-3faahZ9DeMZtyqmlUFzGcM";
+
+// ── ADMIN PASSWORD (change this to something only you know) ───────────────
+var ADMIN_PW_HASH="7a3f2b9c1d8e4f6a";  // placeholder — set below
+// Simple hash function (not crypto but sufficient for admin gate)
+function simpleHash(str){
+  var h=0;
+  for(var i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
+  return Math.abs(h).toString(16);
+}
+// Admin password: PocketDietAdmin2025  (CHANGE THIS AFTER FIRST LOGIN)
+var ADMIN_HASH=simpleHash("PocketDietAdmin2025");
+
+var currentInviteLink="";
+
+async function sbFetch(method,path,data,token){
+  var h={"apikey":SB_KEY,"Authorization":"Bearer "+(token||SB_KEY),"Content-Type":"application/json"};
+  if(data&&method!=="GET")h["Prefer"]="return=representation";
+  var o={method:method,headers:h};
+  if(data)o.body=JSON.stringify(data);
+  var res=await fetch(SB_URL+path,o);
+  var t=await res.text();
+  return{data:t?JSON.parse(t):{},ok:res.ok,status:res.status};
+}
+
+function adminLogin(){
+  var pw=document.getElementById("admin-pw").value;
+  var err=document.getElementById("login-err");
+  if(simpleHash(pw)===ADMIN_HASH){
+    sessionStorage.setItem("pd_admin","1");
+    document.getElementById("login-screen").style.display="none";
+    document.getElementById("app-screen").style.display="block";
+    loadAll();
+  }else{
+    err.textContent="Incorrect password.";
+    err.style.display="block";
+  }
+}
+document.getElementById("admin-pw").onkeydown=function(e){if(e.key==="Enter")adminLogin();};
+
+function adminLogout(){
+  sessionStorage.removeItem("pd_admin");
+  document.getElementById("login-screen").style.display="flex";
+  document.getElementById("app-screen").style.display="none";
+  document.getElementById("admin-pw").value="";
+}
+
+// Auto-login if session exists
+if(sessionStorage.getItem("pd_admin")==="1"){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app-screen").style.display="block";
+  loadAll();
+}
+
+function showTab(tab){
+  ["users","invites","new"].forEach(function(t){
+    document.getElementById("tab-"+t).style.display=t===tab?"block":"none";
+    var btn=document.getElementById("tab-"+t+"-btn");
+    if(btn)btn.className="tab"+(t===tab?" active":"");
+  });
+  if(tab==="invites")loadInvites();
+  if(tab==="users")loadUsers();
+}
+
+async function loadAll(){
+  loadUsers();
+  loadStats();
+}
+
+async function loadStats(){
+  try{
+    var ru=await sbFetch("GET","/rest/v1/user_registry?select=id");
+    var ri=await sbFetch("GET","/rest/v1/invites?select=id,used_at");
+    var users=Array.isArray(ru.data)?ru.data.length:0;
+    var allInv=Array.isArray(ri.data)?ri.data:[];
+    var pending=allInv.filter(function(x){return !x.used_at;}).length;
+    document.getElementById("stat-users").textContent=users;
+    document.getElementById("stat-invites").textContent=allInv.length;
+    document.getElementById("stat-pending").textContent=pending;
+  }catch(e){console.warn("Stats error:",e);}
+}
+
+async function loadUsers(){
+  var el=document.getElementById("users-list");
+  try{
+    var r=await sbFetch("GET","/rest/v1/user_registry?select=email,name,invite_code,created_at&order=created_at.desc");
+    if(!r.ok||!Array.isArray(r.data)||!r.data.length){
+      el.innerHTML='<div style="color:#2d4558;font-size:12px;font-family:monospace;text-align:center;padding:20px">No users registered yet.</div>';
+      return;
+    }
+    el.innerHTML='<table class="table">'+
+      '<thead><tr><th>NAME</th><th>EMAIL</th><th>INVITE CODE</th><th>JOINED</th><th>ACTION</th></tr></thead>'+
+      '<tbody>'+r.data.map(function(u){
+        var d=new Date(u.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+        return '<tr>'+
+          '<td style="color:#dce9f5;font-weight:700">'+(u.name||"—")+'</td>'+
+          '<td style="color:#7a9ab8;font-family:monospace;font-size:11px">'+u.email+'</td>'+
+          '<td><span class="badge badge-cyan" style="background:rgba(34,211,238,0.08);color:#22d3ee">'+(u.invite_code||"—")+'</span></td>'+
+          '<td style="color:#3d5a70;font-family:monospace;font-size:10px">'+d+'</td>'+
+          '<td><button class="btn-sm btn-red" onclick="revokeUser(\''+u.email+'\')">Revoke</button></td>'+
+        '</tr>';
+      }).join("")+'</tbody></table>';
+  }catch(e){
+    document.getElementById("users-err").textContent="Failed to load users: "+e.message;
+    document.getElementById("users-err").style.display="block";
+  }
+}
+
+async function revokeUser(email){
+  if(!confirm("Revoke access for "+email+"?\n\nThis deletes their account data from the registry. They will not be able to log in."))return;
+  try{
+    await sbFetch("DELETE","/rest/v1/user_registry?email=eq."+encodeURIComponent(email));
+    loadUsers();loadStats();
+  }catch(e){alert("Error: "+e.message);}
+}
+
+async function loadInvites(){
+  var el=document.getElementById("invites-list");
+  try{
+    var r=await sbFetch("GET","/rest/v1/invites?select=*&order=created_at.desc");
+    if(!r.ok||!Array.isArray(r.data)||!r.data.length){
+      el.innerHTML='<div style="color:#2d4558;font-size:12px;font-family:monospace;text-align:center;padding:20px">No invite codes yet.</div>';
+      return;
+    }
+    var now=new Date();
+    el.innerHTML=r.data.map(function(inv){
+      var expired=new Date(inv.expires_at)<now;
+      var used=!!inv.used_at;
+      var status=used?'<span class="badge badge-gray">Used</span>':expired?'<span class="badge badge-red">Expired</span>':'<span class="badge badge-green">Active</span>';
+      var exp=new Date(inv.expires_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"});
+      var appUrl=location.origin.replace("admin","")+"pocket-dietitian/?invite="+inv.code;
+      // If on github pages, construct the right URL
+      if(location.hostname.includes("github.io")){
+        appUrl="https://patotis.github.io/pocket-dietitian/?invite="+inv.code;
+      }
+      return '<div class="invite-row">'+
+        '<div>'+
+          '<div class="code">'+inv.code+'</div>'+
+          '<div style="font-size:10px;font-family:monospace;color:#3d5a70;margin-top:3px">Expires: '+exp+(inv.used_by?' · Used by: '+inv.used_by:'')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+          status+
+          (!used&&!expired?'<button class="btn-sm btn-cyan" onclick="copyCode(\''+appUrl+'\')">📋</button>':'')+ 
+          '<button class="btn-sm btn-red" onclick="deleteInvite(\''+inv.code+'\')">✕</button>'+
+        '</div>'+
+      '</div>';
+    }).join("");
+  }catch(e){
+    document.getElementById("invites-err").textContent="Failed to load invites: "+e.message;
+    document.getElementById("invites-err").style.display="block";
+  }
+}
+
+function generateCode(){
+  var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var code="";
+  for(var i=0;i<12;i++){
+    if(i===4||i===8)code+="-";
+    code+=chars[Math.floor(Math.random()*chars.length)];
+  }
+  return code;
+}
+
+async function generateInvite(days){
+  var code=generateCode();
+  var expires=new Date();
+  expires.setDate(expires.getDate()+days);
+  try{
+    var r=await sbFetch("POST","/rest/v1/invites",{
+      code:code,
+      expires_at:expires.toISOString(),
+    });
+    if(r.ok)loadInvites();
+    else alert("Error creating invite: "+JSON.stringify(r.data));
+  }catch(e){alert("Error: "+e.message);}
+}
+
+async function deleteInvite(code){
+  if(!confirm("Delete invite code "+code+"?"))return;
+  try{
+    await sbFetch("DELETE","/rest/v1/invites?code=eq."+code);
+    loadInvites();loadStats();
+  }catch(e){alert("Error: "+e.message);}
+}
+
+function copyCode(url){
+  navigator.clipboard.writeText(url).then(function(){
+    alert("Invite link copied!");
+  }).catch(function(){
+    prompt("Copy this link:",url);
+  });
+}
+
+async function sendInvite(){
+  var name=document.getElementById("inv-name").value.trim();
+  var email=document.getElementById("inv-email").value.trim();
+  var days=parseInt(document.getElementById("inv-days").value);
+  var errEl=document.getElementById("send-err");
+  var okEl=document.getElementById("send-ok");
+  errEl.style.display="none";okEl.style.display="none";
+  if(!name||!email){errEl.textContent="Name and email are required.";errEl.style.display="block";return;}
+  var code=generateCode();
+  var expires=new Date();expires.setDate(expires.getDate()+days);
+  try{
+    var r=await sbFetch("POST","/rest/v1/invites",{
+      code:code,expires_at:expires.toISOString(),created_by:"admin"
+    });
+    if(!r.ok){errEl.textContent="Error: "+JSON.stringify(r.data);errEl.style.display="block";return;}
+    var link="https://patotis.github.io/pocket-dietitian/?invite="+code;
+    currentInviteLink=link;
+    document.getElementById("inv-link").textContent=link;
+    document.getElementById("inv-result").style.display="block";
+    okEl.textContent="✓ Invite code generated for "+name+" ("+email+"). Copy and send the link below.";
+    okEl.style.display="block";
+    loadStats();
+  }catch(e){errEl.textContent="Error: "+e.message;errEl.style.display="block";}
+}
+
+function copyInviteLink(){
+  navigator.clipboard.writeText(currentInviteLink).then(function(){
+    var btn=event.target;btn.textContent="✓ Copied!";
+    setTimeout(function(){btn.textContent="📋 Copy Link";},2000);
+  }).catch(function(){
+    prompt("Copy this invite link:",currentInviteLink);
+  });
+}
+
+function loadAll(){loadUsers();loadStats();}
+</script>
+</body>
+</html>
