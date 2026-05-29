@@ -4579,9 +4579,13 @@ async function authLogin(){
   try{
     var r=await sbFetch("POST","/auth/v1/token?grant_type=password",{email:email.trim(),password:pw});
     if(!r.ok){
-      var msg=r.data.error_description||r.data.msg||r.data.message||"Sign in failed.";
+      var raw=r.data.error_description||r.data.msg||r.data.message||r.data.error||JSON.stringify(r.data);
+      var msg=raw;
+      if(!msg||msg==="null"||msg==="{}") msg="Sign in failed (status "+r.status+")";
       if(msg.toLowerCase().includes("invalid")||msg.toLowerCase().includes("credentials"))msg="Incorrect email or password.";
-      if(msg.toLowerCase().includes("email not confirmed"))msg="Please confirm your email first, then try signing in.";
+      if(msg.toLowerCase().includes("not confirmed")||msg.toLowerCase().includes("email not confirmed")){
+        msg="Email not confirmed. Please check your inbox and click the confirmation link, then try again.";
+      }
       authErr=msg;authLoading=false;renderAuth();return;
     }
     var token=r.data.access_token;
