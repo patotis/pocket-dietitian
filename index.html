@@ -236,6 +236,10 @@ input{font-family:'DM Sans',sans-serif}
     <label style="display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px">YOUR NAME</label>
     <input id="auth-name" type="text" placeholder="Dr. Maria Papadaki" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box"/>
   </div>
+  <div id="auth-invite-wrap" style="display:none;margin-bottom:12px">
+    <label style="display:block;font-size:10px;color:#38bdf8;font-family:monospace;letter-spacing:1px;margin-bottom:6px">🎟️ INVITE CODE *</label>
+    <input id="auth-invite" type="text" placeholder="XXXX-XXXX-XXXX" style="width:100%;padding:11px 13px;background:rgba(56,189,248,0.05);border:1.5px solid rgba(56,189,248,0.3);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box;font-family:monospace;text-transform:uppercase;letter-spacing:2px"/>
+  </div>
   <div style="margin-bottom:12px">
     <label style="display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:6px">EMAIL</label>
     <input id="auth-email" type="email" placeholder="your@email.com" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(56,189,248,0.25);border-radius:9px;color:#dce9f5;font-size:13px;outline:none;box-sizing:border-box"/>
@@ -4514,9 +4518,21 @@ async function authSignup(){
   var email=(document.getElementById("auth-email")||{}).value||"";
   var name=(document.getElementById("auth-name")||{}).value||"";
   var pw=(document.getElementById("auth-pw")||{}).value||"";
+  var code=(document.getElementById("auth-invite")||{}).value||"";
   if(!email.trim()||!name.trim()||!pw){authErr="All fields are required.";renderAuth();return;}
   if(pw.length<6){authErr="Password must be at least 6 characters.";renderAuth();return;}
+  if(!code.trim()){authErr="An invite code is required to create an account.";renderAuth();return;}
   authLoading=true;authErr="";renderAuth();
+  // Validate invite code
+  try{
+    var inv=await sbFetch("GET","/rest/v1/invites?code=eq."+encodeURIComponent(code.trim().toUpperCase())+"&select=*");
+    if(!inv.ok||!Array.isArray(inv.data)||!inv.data.length){
+      authErr="Invalid invite code.";authLoading=false;renderAuth();return;
+    }
+    var invRow=inv.data[0];
+    if(invRow.used_at){authErr="This invite code has already been used.";authLoading=false;renderAuth();return;}
+    if(new Date(invRow.expires_at)<new Date()){authErr="This invite code has expired.";authLoading=false;renderAuth();return;}
+  }catch(e){authErr="Could not validate invite code.";authLoading=false;renderAuth();return;}
   try{
     var r=await sbFetch("POST","/auth/v1/signup",{email:email.trim(),password:pw,data:{name:name.trim()}});
     if(!r.ok){
@@ -4543,6 +4559,13 @@ async function authSignup(){
     authUser={email:email.trim(),name:name.trim(),id:uid,token:token};
     authScreen="app";authLoading=false;
     localStorage.setItem("pd_session",JSON.stringify({email:email.trim(),name:name.trim(),id:uid,token:token,refresh:refresh}));
+    // Mark invite as used + register user
+    try{
+      await sbFetch("PATCH","/rest/v1/invites?code=eq."+encodeURIComponent(code.trim().toUpperCase()),
+        {used_at:new Date().toISOString(),used_by:email.trim()});
+      await sbFetch("POST","/rest/v1/user_registry",
+        {user_id:uid,email:email.trim(),name:name.trim(),invite_code:code.trim().toUpperCase()},token);
+    }catch(e){console.warn("Registry:",e.message);}
     await dbLoad();
   }catch(e){authErr="Sign up failed: "+e.message;authLoading=false;renderAuth();}
 }
@@ -4604,6 +4627,10 @@ function renderAuth(){
   // Show/hide name field
   var nameWrap=document.getElementById("auth-name-wrap");
   if(nameWrap) nameWrap.style.display=isLogin?"none":"block";
+  var invWrap=document.getElementById("auth-invite-wrap");
+  if(invWrap) invWrap.style.display=isLogin?"none":"block";
+  var invWrap=document.getElementById("auth-invite-wrap");
+  if(invWrap) invWrap.style.display=isLogin?"none":"block";
   // Update submit button
   var submit=document.getElementById("auth-submit");
   if(submit){
@@ -4924,7 +4951,18 @@ async function doShare(){
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-function switchAuthTab(tab){authScreen=tab;authErr="";renderAuth();}
+function switchAuthTab(tab){
+  authScreen=tab;authErr="";
+  renderAuth();
+  // Re-apply invite code from URL if present
+  var urlCode=new URLSearchParams(window.location.search).get("invite")||"";
+  if(urlCode&&tab==="signup"){
+    setTimeout(function(){
+      var f=document.getElementById("auth-invite");
+      if(f)f.value=urlCode.toUpperCase();
+    },50);
+  }
+}
 async function tryRestoreSession(){
   try{
     var saved=localStorage.getItem("pd_session");
@@ -4943,16 +4981,25 @@ async function tryRestoreSession(){
   }catch(e){localStorage.removeItem("pd_session");renderAuth();}
 }
 // DOM ready — try restore session, else show login
-// Show login form immediately (it is pre-rendered in HTML)
-// Then check for saved session in background
-document.addEventListener("DOMContentLoaded",function(){
+// Show login form immediately, check for invite code in URL
+function initApp(){
+  var params=new URLSearchParams(window.location.search);
+  var inviteCode=params.get("invite")||"";
+  if(inviteCode){
+    // Auto-switch to signup tab and pre-fill invite code
+    authScreen="signup";
+  }
   renderAuth();
+  if(inviteCode){
+    setTimeout(function(){
+      var f=document.getElementById("auth-invite");
+      if(f)f.value=inviteCode.toUpperCase();
+    },100);
+  }
   tryRestoreSession();
-});
-if(document.readyState==="complete"||document.readyState==="interactive"){
-  renderAuth();
-  setTimeout(tryRestoreSession,0);
 }
+document.addEventListener("DOMContentLoaded",initApp);
+if(document.readyState==="complete"||document.readyState==="interactive"){setTimeout(initApp,0);}
 
 // ── Persistent DB helpers ─────────────────────────────────────────────────
 var patientSearch="";
