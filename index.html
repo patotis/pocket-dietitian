@@ -255,6 +255,21 @@ input{font-family:'DM Sans',sans-serif}
 <script>
 // Supabase config
 var SB_URL="https://llxtopdyjbpwyetawump.supabase.co";
+// Anthropic API key (user-provided, stored locally)
+function getApiKey(){return localStorage.getItem("pd_api_key")||"";}
+function setApiKey(k){localStorage.setItem("pd_api_key",k.trim());}
+function requireApiKey(){
+  var k=getApiKey();
+  if(k)return k;
+  var input=prompt("Enter your Anthropic API key to use AI features:\n(Get one at console.anthropic.com)","");
+  if(input&&input.trim().startsWith("sk-")){
+    setApiKey(input.trim());
+    return input.trim();
+  }
+  if(input)alert("Invalid key format. Key should start with sk-");
+  return null;
+}
+
 var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxseHRvcGR5amJwd3lldGF3dW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDk0MzUsImV4cCI6MjA5NTUyNTQzNX0.IVJcz2Fn8Q27a7BtJyhx-3faahZ9DeMZtyqmlUFzGcM";
 async function sbFetch(method,path,data,token){
   var h={"apikey":SB_KEY,"Authorization":"Bearer "+(token||SB_KEY),"Content-Type":"application/json"};
@@ -375,7 +390,7 @@ const COMMON_Qs=[
   {id:"meals",label:"Typical meals per day",type:"single",options:["1–2 large meals","3 regular meals","4–5 small meals","I graze / no pattern"],icon:"🕐"},
   {id:"health",label:"Relevant health conditions",type:"multi",options:["Type 2 diabetes / pre-diabetes","Hypertension","High cholesterol","Thyroid issues","Kidney disease / impairment","None"],icon:"🏥"},
   {id:"current_supplements",label:"Current supplements (optional)",type:"supplements",icon:"💊"},
-  {id:"current_supplements",label:"Current supplements (optional)",type:"supplements",icon:"💊"},
+  {id:"blood_panel",label:"Blood test results (optional)",type:"blood",icon:"🩸"},
 ];
 const LOSS_Qs=[
   {id:"bmi",label:"Current weight status (self-assessed)",type:"single",options:["Slightly overweight (5–15 lbs)","Moderately overweight (15–40 lbs)","Significantly overweight (40+ lbs)","Unsure"],icon:"⚖️"},
@@ -526,9 +541,11 @@ BMI: ${bmi2||"not provided"}${bmi2?" ("+getBMILabel(bmi2)+")":""}
 Current diet: ${answers.diet_now||"unknown"}
 ${goal==="loss"?"Biggest challenge: "+(answers.challenge||"unknown"):"Training level: "+(answers.training||"unknown")+", Goal: "+(answers.gain_goal||"unknown")}`;
   const prompt=`You are a registered dietitian reviewing a shop catalogue to suggest appropriate products for a patient. Be clinically rigorous.\n\nPATIENT PROFILE:\n${context}\n\nAVAILABLE PRODUCTS:\n${productList}\n\nINSTRUCTIONS:\n1. Review each product as a clinical dietitian — check fit with dietary restrictions, health conditions, goal alignment, and evidence base.\n2. Select 3–6 products ONLY if clinically confident. Be strict.\n3. For each approved product, explain WHY it fits this specific patient and give precise usage instructions.\n4. Note any excluded products and why.\n5. If the patient has kidney disease, flag and exclude high-protein supplements.\n\nReturn ONLY valid raw JSON (no markdown, no backticks):\n{"dietitian_note":"2-sentence clinical summary","approved":[{"product_index":1,"name":"exact name from list","category":"Protein Supplement/Whole Food/Snack/Drink","fit_reason":"why clinically appropriate for THIS patient","how_to_use":"specific instruction","evidence_basis":"scientific basis"}],"rejected_notes":"optional exclusions note"}`;
-  const res=await fetch("https://api.anthropic.com/v1/messages",{
+  var apiKey=requireApiKey();
+  if(!apiKey)return;
+  const res=await fetch("https://pocket-dietitian-ai.patotisbio.workers.dev",{
     method:"POST",
-    headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1800,messages:[{role:"user",content:prompt}]}),
   });
   if(!res.ok){const t=await res.text();throw new Error("API "+res.status+": "+t.slice(0,200));}
@@ -735,12 +752,13 @@ function buildQuizScreen(){
   const isBio=q.type==="biometrics";
   const isMulti=q.type==="multi";
   const isSupp=q.type==="supplements";
+  const isBlood=q.type==="blood";
 
   // For biometrics, read saved values
   const bioVal=quizAnswers[q.id]||{};
   const unit=bioVal.unit||"metric";
   // For supplements: always skippable, so canNext is always true
-  const canNext=isSupp?true:isBio
+  const canNext=(isSupp||isBlood)?true:isBio
     ?(unit==="metric"
         ?(parseFloat(bioVal.height_cm)>0&&parseFloat(bioVal.weight_kg)>0)
         :(parseFloat(bioVal.height_ft)>0&&parseFloat(bioVal.weight_lb)>0))
@@ -750,7 +768,9 @@ function buildQuizScreen(){
   const sel=Array.isArray(cur)?cur:(cur?[cur]:[]);
 
   let bodyHtml="";
-  if(isSupp){
+  if(isBlood){
+    bodyHtml=buildBloodPanelHtml(accent);
+  } else if(isSupp){
     const suppVal=quizAnswers["current_supplements"]||{presets:[],custom:""};
     const selPresets=suppVal.presets||[];
     const presetsHtml=SUPPLEMENT_PRESETS.map(name=>{
@@ -1221,6 +1241,16 @@ function computeTwinMetrics(isLoss){
 function buildDigitalTwin(isLoss,accent){
   var m=computeTwinMetrics(isLoss);
   var isCheckup=GOAL==="checkup";
+  var bp=ANSWERS.blood_panel||{};
+  if(!bp.skipped){
+    var gl=parseFloat(bp.glucose);if(!isNaN(gl)&&gl>125){m.heart=Math.min(m.heart,60);}
+    var lt=parseFloat(bp.alt);if(!isNaN(lt)&&lt>60)m.liver=Math.min(m.liver,60);
+    var cr=parseFloat(bp.creatinine);if(!isNaN(cr)&&cr>1.3)m.kidney=Math.min(m.kidney,60);
+    var tc=parseFloat(bp.total_chol);if(!isNaN(tc)&&tc>240)m.heart=Math.min(m.heart,65);
+    var crpv=parseFloat(bp.crp);if(!isNaN(crpv)&&crpv>3){m.liver=Math.min(m.liver,70);m.heart=Math.min(m.heart,70);}
+    var d3v=parseFloat(bp.vitamin_d);if(!isNaN(d3v)&&d3v<20)m.brain=Math.min(m.brain,70);
+    var b12v=parseFloat(bp.b12);if(!isNaN(b12v)&&b12v<200)m.brain=Math.min(m.brain,65);
+  }
 
   // SVG body figure with organ hotspots
   function organDot(x,y,score,label,orgKey){
@@ -1764,6 +1794,7 @@ function buildDietTab(isLoss,accent,diet){
     ${proteinCard}
     ${buildCalorieCard(isLoss)}
     ${buildSuppCard(diet.color)}
+    ${buildBloodAnalysisCard(diet.color)}
     <div class="clin-note">
       <div class="mono" style="color:#f87171;font-size:9px;letter-spacing:1.5px;margin-bottom:4px">⚠️ CLINICAL NOTE</div>
       <p style="color:#7a9ab8;font-size:12px;line-height:1.6;margin:0">${isLoss?"Refer to a physician or RD if: T2D requiring medication adjustment, active eating disorder history, BMI &gt;40, or recent GI surgery.":isCheckup?"Annual blood panel (glucose, HbA1c, lipids, Vit D, B12, TSH, CRP) is the most impactful preventive health action. Always consult your physician for personalised screening schedules.":"Patients with kidney disease must NOT follow high-protein protocols (&gt;1.2g/kg) without nephrologist clearance. Creatine is contraindicated in renal insufficiency."}</p>
@@ -2427,9 +2458,9 @@ Return ONLY raw valid JSON (no markdown, no backticks, no explanation):
 }`;
 
   try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch("https://pocket-dietitian-ai.patotisbio.workers.dev",{
       method:"POST",
-      headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1400,messages:[{role:"user",content:prompt}]}),
     });
     if(!res.ok){const t=await res.text();throw new Error("API "+res.status+": "+t.slice(0,200));}
@@ -3976,9 +4007,9 @@ async function fetchLiveTrends(){
   const prompt="You are a nutrition science expert and registered dietitian. Generate a JSON summary of the 7 most significant, current nutrition science trends as of 2025. Include both emerging research, established findings, and at least one debunked popular myth. Be accurate. Cite real studies with real PMIDs. Include diverse topics: ultra-processed food, gut microbiome, GLP-1 drug interactions with diet, protein research, chrono-nutrition, micronutrients, longevity, and debunked myths. Return ONLY raw valid JSON with no markdown, no backticks, no preamble. Schema: {summary, last_updated, trends: [{title, emoji, status (established|emerging|debunked), evidence_strength (1-5 integer), summary, clinical_note, study}]}";
 
   try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch("https://pocket-dietitian-ai.patotisbio.workers.dev",{
       method:"POST",
-      headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2200,messages:[{role:"user",content:prompt}]}),
     });
     if(!res.ok){throw new Error("API "+res.status);}
@@ -4666,13 +4697,44 @@ function buildMealPlanPage(){
     else if(patients.length)mpSelectedPatient=patients[0].id;
   }
 
-  // GENERATING state
-  if(mpState==="generating"){
+  // READY TO COPY state
+  if(mpState==="ready_to_copy"){
+    var prompt="";
+    try{prompt=sessionStorage.getItem("mp_prompt")||"";}catch(e){}
     return "<div>"+
-      "<div style=\"background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.18);border-radius:12px;padding:28px 16px;text-align:center;margin-bottom:14px\">"+
-        "<div style=\"font-size:40px;margin-bottom:12px\">🗓️</div>"+
-        "<div style=\"font-size:11px;color:#22d3ee;font-family:monospace;letter-spacing:.5px;margin-bottom:8px\">GENERATING 7-DAY MEAL PLAN…</div>"+
-        "<div style=\"color:#3d5a70;font-size:12px;line-height:1.6\">Claude is creating personalised meals based on USDA nutritional data, patient biometrics, dietary restrictions, and 24h recall patterns.<br><br>This takes 20–40 seconds.</div>"+
+      "<div style=\"background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.18);border-radius:12px;padding:22px 16px;margin-bottom:14px\">"+
+        "<div style=\"font-size:32px;margin-bottom:10px;text-align:center\">🗓️</div>"+
+        "<div style=\"font-size:11px;color:#22d3ee;font-family:monospace;letter-spacing:.5px;margin-bottom:12px;text-align:center\">HOW TO GENERATE YOUR MEAL PLAN</div>"+
+        "<div style=\"display:flex;flex-direction:column;gap:10px;margin-bottom:18px\">"+
+          "<div style=\"display:flex;gap:10px;align-items:flex-start\">"+
+            "<div style=\"width:22px;height:22px;border-radius:50%;background:#38bdf8;color:#04101a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px\">1</div>"+
+            "<div style=\"color:#7a9ab8;font-size:12px;line-height:1.5\">Click <strong style=\"color:#dce9f5\">Copy Prompt</strong> below to copy the personalised meal plan request</div>"+
+          "</div>"+
+          "<div style=\"display:flex;gap:10px;align-items:flex-start\">"+
+            "<div style=\"width:22px;height:22px;border-radius:50%;background:#38bdf8;color:#04101a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px\">2</div>"+
+            "<div style=\"color:#7a9ab8;font-size:12px;line-height:1.5\">Click <strong style=\"color:#dce9f5\">Open Claude</strong> to open a new Claude conversation</div>"+
+          "</div>"+
+          "<div style=\"display:flex;gap:10px;align-items:flex-start\">"+
+            "<div style=\"width:22px;height:22px;border-radius:50%;background:#38bdf8;color:#04101a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px\">3</div>"+
+            "<div style=\"color:#7a9ab8;font-size:12px;line-height:1.5\">Paste the prompt and send — Claude will generate the full 7-day plan with USDA nutritional data</div>"+
+          "</div>"+
+          "<div style=\"display:flex;gap:10px;align-items:flex-start\">"+
+            "<div style=\"width:22px;height:22px;border-radius:50%;background:#4ade80;color:#04101a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px\">4</div>"+
+            "<div style=\"color:#7a9ab8;font-size:12px;line-height:1.5\">Copy the generated JSON back here and click <strong style=\"color:#dce9f5\">Load Plan</strong> to display and save it</div>"+
+          "</div>"+
+        "</div>"+
+        "<div style=\"display:flex;gap:8px;margin-bottom:14px\">"+
+          "<button onclick=\"copyMpPrompt()\" style=\"flex:1;padding:12px;background:linear-gradient(135deg,#38bdf8,#0ea5e9);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:13px;cursor:pointer\">📋 Copy Prompt</button>"+
+          "<button onclick=\"window.open('https://claude.ai/new','_blank')\" style=\"flex:1;padding:12px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);border-radius:9px;color:#38bdf8;font-weight:700;font-size:13px;cursor:pointer\">↗ Open Claude</button>"+
+        "</div>"+
+        "<div style=\"margin-bottom:8px\">"+
+          "<label style=\"display:block;font-size:9px;color:#3d5a70;font-family:monospace;letter-spacing:1px;margin-bottom:6px\">PASTE JSON PLAN FROM CLAUDE HERE</label>"+
+          "<textarea id=\"mp-json-input\" placeholder=\"Paste the JSON response from Claude here...\" style=\"width:100%;padding:11px 13px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:9px;color:#dce9f5;font-size:11px;font-family:monospace;outline:none;box-sizing:border-box;resize:vertical;min-height:100px;line-height:1.4\"></textarea>"+
+        "</div>"+
+        "<div style=\"display:flex;gap:8px\">"+
+          "<button onclick=\"loadMpJson()\" style=\"flex:1;padding:12px;background:linear-gradient(135deg,#4ade80,#22d3ee);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:13px;cursor:pointer\">✓ Load Plan</button>"+
+          "<button onclick=\"mpState='idle';render()\" style=\"flex:1;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:9px;color:#4a6070;font-size:13px;cursor:pointer\">← Back</button>"+
+        "</div>"+
       "</div>"+
     "</div>";
   }
@@ -4819,9 +4881,388 @@ function buildMealPlanPage(){
     "</div>"+
     (patientOptions?"<div style=\"font-size:9px;color:#3d5a70;font-family:monospace;letter-spacing:1px;margin-bottom:8px\">SELECT PATIENT</div>"+patientOptions:"<div style=\"color:#2d4558;font-size:12px;font-family:monospace;text-align:center;padding:20px\">Complete an assessment or add a patient to get started.</div>")+
     summaryHtml+
-    (mpSelectedPatient?"<button onclick=\"generateMealPlan()\" style=\"width:100%;padding:14px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer\">🗓️ Generate 7-Day Meal Plan</button>":"")+
+    (mpSelectedPatient?"<button onclick=\"showMealPlanPrompt()\" style=\"width:100%;padding:14px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer\">📋 Generate Prompt for Claude</button>":"")+
     "<p style=\"text-align:center;font-size:9px;color:#1a2e3d;font-family:monospace;margin-top:12px\">Powered by Claude AI · USDA FoodData Central references · ~30s generation time</p>"+
   "</div>";
+}
+
+
+
+function showApiKeySettings(){
+  var overlay=document.getElementById("api-key-overlay");
+  if(!overlay)return;
+  overlay.style.display="flex";
+  var inp=document.getElementById("api-key-input");
+  var status=document.getElementById("api-key-status");
+  var existing=getApiKey();
+  if(inp)inp.value=existing;
+  if(status)status.textContent=existing?"✓ Key saved ("+existing.slice(0,8)+"...)":"No key saved yet";
+  if(status)status.style.color=existing?"#4ade80":"#3d5a70";
+  setTimeout(function(){if(inp)inp.focus();},60);
+}
+function saveApiKey(){
+  var inp=document.getElementById("api-key-input");
+  var status=document.getElementById("api-key-status");
+  var k=(inp?inp.value:"").trim();
+  if(!k){status.textContent="Please enter a key.";status.style.color="#f87171";return;}
+  if(!k.startsWith("sk-")){status.textContent="Invalid key — must start with sk-";status.style.color="#f87171";return;}
+  setApiKey(k);
+  if(status){status.textContent="✓ Key saved!";status.style.color="#4ade80";}
+  setTimeout(function(){document.getElementById("api-key-overlay").style.display="none";},1200);
+}
+function clearApiKey(){
+  localStorage.removeItem("pd_api_key");
+  var inp=document.getElementById("api-key-input");
+  var status=document.getElementById("api-key-status");
+  if(inp)inp.value="";
+  if(status){status.textContent="Key cleared.";status.style.color="#f87171";}
+}
+
+// ═══════════════════════════════════════════════
+// MEAL PLAN PROMPT GENERATOR
+// ═══════════════════════════════════════════════
+function showMealPlanPrompt(){
+  var patId=mpSelectedPatient;
+  if(!patId)return;
+  var ctx=buildPatientContext(patId);
+  if(!ctx){alert("No patient data found.");return;}
+  var prompt=buildMealPlanPrompt(ctx);
+
+  // Show prompt in a full-screen overlay modal
+  var existing=document.getElementById("mp-prompt-overlay");
+  if(existing)existing.remove();
+
+  var overlay=document.createElement("div");
+  overlay.id="mp-prompt-overlay";
+  overlay.style.cssText="position:fixed;inset:0;background:rgba(5,13,22,0.97);z-index:999;display:flex;flex-direction:column;padding:16px;box-sizing:border-box";
+
+  overlay.innerHTML=
+    "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0'>"+
+      "<div>"+
+        "<div style='font-size:10px;color:#22d3ee;font-family:monospace;letter-spacing:1.5px;margin-bottom:2px'>📋 MEAL PLAN PROMPT</div>"+
+        "<div style='font-size:15px;color:#dce9f5;font-family:serif'>Copy and paste into Claude</div>"+
+      "</div>"+
+      "<button id='mp-close-btn' style='background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4a6070;font-size:13px;padding:8px 14px;cursor:pointer;font-family:monospace'>✕ Close</button>"+
+    "</div>"+
+    "<div style='background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px;flex-shrink:0'>"+
+      "<div style='font-size:11px;color:#7a9ab8;line-height:1.6'>"+
+        "1. Click <strong style='color:#22d3ee'>Copy Prompt</strong> below<br>"+
+        "2. Open <a href='https://claude.ai' target='_blank' style='color:#38bdf8'>claude.ai</a> in a new tab<br>"+
+        "3. Paste the prompt and send it<br>"+
+        "4. Copy Claude's response and paste it back here using <strong style='color:#22d3ee'>Paste Plan</strong>"+
+      "</div>"+
+    "</div>"+
+    "<div style='flex:1;overflow-y:auto;margin-bottom:10px'>"+
+      "<textarea id='mp-prompt-text' style='width:100%;height:100%;min-height:300px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#94a3b8;font-size:11px;font-family:monospace;padding:14px;box-sizing:border-box;resize:none;line-height:1.6;outline:none' readonly>"+h(prompt)+"</textarea>"+
+    "</div>"+
+    "<div style='display:flex;gap:8px;flex-shrink:0'>"+
+      "<button id='mp-copy-btn' style='flex:2;padding:13px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer'>📋 Copy Prompt</button>"+
+      "<button id='mp-paste-btn' style='flex:1;padding:13px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);border-radius:9px;color:#4ade80;font-weight:700;font-size:13px;cursor:pointer'>📥 Paste Plan</button>"+
+    "</div>"+
+    "<div id='mp-paste-area' style='display:none;margin-top:10px'>"+
+      "<div style='font-size:10px;color:#4a6070;font-family:monospace;margin-bottom:6px'>PASTE CLAUDE\'S JSON RESPONSE BELOW:</div>"+
+      "<textarea id='mp-paste-text' placeholder='Paste the JSON response from Claude here...' style='width:100%;height:180px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(74,222,128,0.3);border-radius:9px;color:#dce9f5;font-size:11px;font-family:monospace;padding:12px;box-sizing:border-box;resize:none;outline:none;line-height:1.5'></textarea>"+
+      "<button id='mp-load-btn' style='width:100%;margin-top:8px;padding:11px;background:linear-gradient(135deg,#4ade80,#22d3ee);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:13px;cursor:pointer'>✓ Load Meal Plan</button>"+
+    "</div>";
+
+  document.body.appendChild(overlay);
+
+  // Wire events
+  document.getElementById("mp-close-btn").onclick=function(){overlay.remove();};
+  document.getElementById("mp-copy-btn").onclick=function(){
+    var ta=document.getElementById("mp-prompt-text");
+    ta.select();
+    try{
+      navigator.clipboard.writeText(ta.value).then(function(){
+        var btn=document.getElementById("mp-copy-btn");
+        if(btn){btn.textContent="✓ Copied!";btn.style.background="linear-gradient(135deg,#4ade80,#22d3ee)";}
+        setTimeout(function(){
+          var b=document.getElementById("mp-copy-btn");
+          if(b){b.textContent="📋 Copy Prompt";b.style.background="linear-gradient(135deg,#22d3ee,#0ea5e9)";}
+        },2500);
+      });
+    }catch(e){
+      document.execCommand("copy");
+      alert("Copied!");
+    }
+  };
+  document.getElementById("mp-paste-btn").onclick=function(){
+    var area=document.getElementById("mp-paste-area");
+    if(area){area.style.display=area.style.display==="none"?"block":"none";}
+  };
+  document.getElementById("mp-load-btn").onclick=function(){
+    var text=document.getElementById("mp-paste-text").value.trim();
+    if(!text){alert("Please paste Claude\'s response first.");return;}
+    try{
+      // Try to extract JSON from the pasted text
+      var match=text.match(/\{[\s\S]*\}/);
+      if(!match)throw new Error("No JSON found in pasted text.");
+      var plan=JSON.parse(match[0]);
+      if(!plan.days||!Array.isArray(plan.days)||!plan.days.length)throw new Error("Invalid plan format — missing days array.");
+      mpPlan=plan;
+      mpState="done";
+      mpExpandedDay=0;
+      mpShowShopping=false;
+      overlay.remove();
+      render();
+    }catch(e){
+      alert("Could not parse the plan: "+e.message+"\n\nMake sure you paste Claude\'s complete JSON response.");
+    }
+  };
+}
+
+
+// ═══════════════════════════════════════════════
+// BLOOD PANEL MODULE
+// ═══════════════════════════════════════════════
+
+// Reference ranges (WHO / IFCC standard adult)
+var BLOOD_MARKERS=[
+  // ── METABOLIC ────────────────────────────────
+  {id:"glucose",    group:"metabolic", label:"Fasting Glucose",      unit:"mg/dL", low:70,  high:99,  warn_high:126, icon:"🍬",
+   tip:"Pre-diabetes: 100–125 · Diabetes ≥126",
+   low_note:"Hypoglycaemia risk. Consider timing of meals and carb intake.",
+   high_note:"Elevated fasting glucose suggests insulin resistance or pre-diabetes. Low-GI diet, reduce refined carbs, increase fibre and physical activity.",
+   warn_note:"Diabetic range. High-priority dietary intervention. Low-GI, low-sugar diet. Consult physician."},
+  {id:"hba1c",      group:"metabolic", label:"HbA1c",                unit:"%",     low:null,high:5.6, warn_high:6.5, icon:"📊",
+   tip:"Pre-diabetes: 5.7–6.4% · Diabetes ≥6.5%",
+   high_note:"Elevated 3-month average glucose. Reduce refined carbs and sugar, increase fibre, prioritise low-GI foods.",
+   warn_note:"Diabetic range HbA1c. Strict carbohydrate management essential. Consult physician for medication review."},
+  {id:"insulin",    group:"metabolic", label:"Fasting Insulin",      unit:"μIU/mL",low:null,high:10,  warn_high:20,  icon:"💉",
+   tip:"Optimal <5 · Normal <10 · Insulin resistance >15",
+   high_note:"Elevated fasting insulin indicates insulin resistance. Reduce refined carbs, increase protein and fibre, intermittent fasting may help.",
+   warn_note:"Significant hyperinsulinaemia. Intensive lifestyle intervention required."},
+  // ── LIPIDS ───────────────────────────────────
+  {id:"total_chol", group:"lipids",    label:"Total Cholesterol",    unit:"mg/dL", low:null,high:200, warn_high:240, icon:"🫀",
+   tip:"Borderline: 200–239 · High ≥240",
+   high_note:"Elevated total cholesterol. Increase omega-3, soluble fibre (oats, legumes), reduce saturated fat. Add sterols/stanols.",
+   warn_note:"High cholesterol. Mediterranean diet, omega-3 2g/day. Discuss statin therapy with physician."},
+  {id:"ldl",        group:"lipids",    label:"LDL Cholesterol",      unit:"mg/dL", low:null,high:100, warn_high:160, icon:"⬆️",
+   tip:"Optimal <100 · Borderline: 130–159 · High ≥160",
+   high_note:"Elevated LDL. Reduce saturated fat and trans fats, increase soluble fibre, add omega-3 2g/day and plant sterols.",
+   warn_note:"Very high LDL — significant cardiovascular risk. Strict dietary intervention + medical evaluation."},
+  {id:"hdl",        group:"lipids",    label:"HDL Cholesterol",      unit:"mg/dL", low:40,  high:null,warn_low:35,   icon:"⬇️",
+   tip:"Low (<40 men, <50 women) · Optimal >60",
+   low_note:"Low HDL — cardiovascular risk factor. Increase exercise, omega-3, olive oil, nuts. Reduce refined carbs.",
+   warn_note:"Very low HDL — high CVD risk. Intensive lifestyle changes required."},
+  {id:"triglyc",    group:"lipids",    label:"Triglycerides",        unit:"mg/dL", low:null,high:150, warn_high:200, icon:"🫙",
+   tip:"Borderline: 150–199 · High ≥200",
+   high_note:"Elevated triglycerides. Drastically reduce sugar, alcohol, and refined carbs. Omega-3 4g/day reduces TG by 25–30%.",
+   warn_note:"Very high triglycerides — pancreatitis risk. Urgent dietary intervention: no alcohol, very low sugar."},
+  // ── LIVER ────────────────────────────────────
+  {id:"alt",        group:"liver",     label:"ALT (SGPT)",           unit:"U/L",   low:null,high:40,  warn_high:80,  icon:"🫁",
+   tip:"Normal 7–40 · Mild elevation: 40–80 · Significant >80",
+   high_note:"Mildly elevated ALT suggests liver stress. Reduce alcohol, avoid hepatotoxic supplements. Increase cruciferous vegetables, consider milk thistle 420mg/day.",
+   warn_note:"Significantly elevated ALT. Medical evaluation required. Eliminate alcohol and suspect medications."},
+  {id:"ast",        group:"liver",     label:"AST (SGOT)",           unit:"U/L",   low:null,high:40,  warn_high:80,  icon:"🫁",
+   tip:"Normal 10–40 · May indicate cardiac or liver origin",
+   high_note:"Elevated AST. Reduce alcohol and hepatotoxic substances. Ensure adequate antioxidant intake.",
+   warn_note:"High AST — medical evaluation recommended."},
+  {id:"ggt",        group:"liver",     label:"GGT",                  unit:"U/L",   low:null,high:50,  warn_high:100, icon:"🔬",
+   tip:"Sensitive marker for alcohol use and NAFLD",
+   high_note:"Elevated GGT often indicates alcohol use or early fatty liver. Reduce alcohol, refined carbs, and fructose.",
+   warn_note:"Very elevated GGT. Abstain from alcohol entirely. Medical evaluation for NAFLD/liver disease."},
+  // ── KIDNEY ───────────────────────────────────
+  {id:"creatinine", group:"kidney",    label:"Creatinine",           unit:"mg/dL", low:0.6, high:1.2, warn_high:1.5, icon:"🫘",
+   tip:"Normal 0.6–1.2 (men), 0.5–1.1 (women)",
+   low_note:"Low creatinine may indicate low muscle mass or low protein intake.",
+   high_note:"Mildly elevated creatinine — ensure adequate hydration. Avoid NSAIDs. Moderate protein intake.",
+   warn_note:"Elevated creatinine — renal function assessment required. Restrict protein to 0.8g/kg and avoid nephrotoxic substances."},
+  {id:"urea",       group:"kidney",    label:"Blood Urea (BUN)",     unit:"mg/dL", low:7,   high:20,  warn_high:30,  icon:"💧",
+   tip:"Normal 7–20 mg/dL",
+   high_note:"Elevated urea may reflect high protein intake or mild renal impairment. Ensure 2.5L+/day hydration.",
+   warn_note:"High urea — assess kidney function. Reduce protein intake and ensure hydration."},
+  {id:"uric_acid",  group:"kidney",    label:"Uric Acid",            unit:"mg/dL", low:null,high:6.8, warn_high:9,   icon:"⚗️",
+   tip:"High risk >6.8 · Gout risk >9",
+   high_note:"Elevated uric acid. Reduce red meat, shellfish, alcohol, fructose. Increase hydration to 3L/day. Cherry juice and vitamin C reduce uric acid.",
+   warn_note:"Very high uric acid — gout risk. Strict purine restriction and hydration. Medical evaluation."},
+  // ── THYROID ──────────────────────────────────
+  {id:"tsh",        group:"thyroid",   label:"TSH",                  unit:"μIU/mL",low:0.4, high:4.0, warn_high:10,  icon:"🦋",
+   tip:"Optimal 1.0–2.5 · Hypothyroid >4 · Hyperthyroid <0.4",
+   low_note:"Low TSH may indicate hyperthyroidism. Avoid excess iodine and thyroid-stimulating supplements.",
+   high_note:"Elevated TSH suggests hypothyroidism. Ensure adequate iodine, selenium, zinc and vitamin D. Medical evaluation for thyroid hormone therapy.",
+   warn_note:"Significantly elevated TSH — hypothyroidism likely. Medical treatment required."},
+  // ── HAEMATOLOGY ──────────────────────────────
+  {id:"hemoglobin", group:"haematology",label:"Haemoglobin",         unit:"g/dL",  low:12,  high:17,  warn_low:10,   icon:"🔴",
+   tip:"Men 13.5–17.5 · Women 12–15.5 · Anaemia <12",
+   low_note:"Low haemoglobin — iron deficiency or anaemia. Increase dietary iron (meat, legumes + vitamin C). Test ferritin and B12.",
+   warn_note:"Significant anaemia. Iron supplementation with vitamin C. B12 and folate assessment. Medical evaluation."},
+  {id:"ferritin",   group:"haematology",label:"Ferritin",            unit:"ng/mL", low:20,  high:300, warn_low:10,   icon:"⚙️",
+   tip:"Optimal 50–150 · Deficient <20 · Overload >300",
+   low_note:"Low ferritin — iron depletion. Increase haem iron (red meat, liver) or non-haem iron with vitamin C. Avoid coffee/tea with meals.",
+   high_note:"Elevated ferritin may indicate inflammation or haemochromatosis. Avoid iron supplements.",
+   warn_note:"Very low ferritin — iron deficiency. Supplementation required: ferrous bisglycinate 25–50mg alternate days."},
+  {id:"b12",        group:"haematology",label:"Vitamin B12",         unit:"pg/mL", low:200, high:900, warn_low:150,  icon:"🔵",
+   tip:"Deficient <200 · Optimal 400–900",
+   low_note:"Low B12 — risk of neurological damage. Methylcobalamin 1000mcg/day. Especially critical for vegans.",
+   warn_note:"Very low B12 — supplementation urgent. Methylcobalamin 2000mcg/day. Medical evaluation for absorption issues."},
+  {id:"vitamin_d",  group:"haematology",label:"Vitamin D (25-OH)",   unit:"ng/mL", low:30,  high:100, warn_low:12,   icon:"☀️",
+   tip:"Deficient <20 · Insufficient 20–29 · Optimal 40–80",
+   low_note:"Low vitamin D. Supplement D3+K2: 2000–4000 IU/day with fat-containing meal. Sun exposure 15–20min daily.",
+   warn_note:"Severe vitamin D deficiency. High-dose D3 50,000 IU/week for 8 weeks (under medical supervision), then maintenance 2000–4000 IU/day."},
+  // ── INFLAMMATION ─────────────────────────────
+  {id:"crp",        group:"inflammation",label:"CRP (hs-CRP)",       unit:"mg/L",  low:null,high:1.0, warn_high:3.0, icon:"🔥",
+   tip:"Low risk <1 · Average risk 1–3 · High risk >3",
+   high_note:"Elevated CRP — systemic inflammation. Anti-inflammatory diet: omega-3, turmeric+piperine, berries, reduce UPF and refined carbs.",
+   warn_note:"High CRP — significant inflammation. Intensive anti-inflammatory protocol. Investigate underlying cause."},
+  // ── HORMONES ─────────────────────────────────
+  {id:"testosterone",group:"hormones", label:"Testosterone (total)", unit:"ng/dL", low:300, high:1000,warn_low:200,  icon:"💪",
+   tip:"Men: normal 300–1000 · Women: 15–70 ng/dL",
+   low_note:"Low testosterone. Optimise sleep (7–9h), zinc 30mg/day, vitamin D, resistance training, reduce alcohol and UPF.",
+   warn_note:"Very low testosterone — medical evaluation for hypogonadism. Lifestyle intervention and hormonal assessment."},
+  {id:"cortisol",   group:"hormones",  label:"Morning Cortisol",     unit:"μg/dL", low:6,   high:23,  warn_high:30,  icon:"😰",
+   tip:"Morning normal 6–23 · Elevated >25",
+   low_note:"Low cortisol may indicate adrenal insufficiency. Medical evaluation required.",
+   high_note:"Elevated cortisol suggests chronic stress or adrenal dysregulation. Prioritise sleep, reduce caffeine after noon, add ashwagandha KSM-66 300mg.",
+   warn_note:"Very high cortisol — adrenal evaluation required. Significant stress response."},
+];
+
+var BLOOD_GROUPS=[
+  {id:"metabolic",  label:"Metabolic & Glucose",    color:"#fbbf24", icon:"🍬"},
+  {id:"lipids",     label:"Lipid Panel",             color:"#f97316", icon:"🫀"},
+  {id:"liver",      label:"Liver Function",          color:"#4ade80", icon:"🫁"},
+  {id:"kidney",     label:"Kidney Function",         color:"#38bdf8", icon:"🫘"},
+  {id:"thyroid",    label:"Thyroid",                 color:"#a78bfa", icon:"🦋"},
+  {id:"haematology",label:"Haematology",             color:"#f87171", icon:"🔴"},
+  {id:"inflammation",label:"Inflammation",           color:"#fb923c", icon:"🔥"},
+  {id:"hormones",   label:"Hormones",                color:"#22d3ee", icon:"💪"},
+];
+
+function updateBloodValue(id, val){
+  var panel=quizAnswers["blood_panel"]||{};
+  if(val===""){delete panel[id];}
+  else panel[id]=val;
+  quizAnswers["blood_panel"]=panel;
+  // Live update the flag chip without full re-render
+  var chip=document.getElementById("bflag_"+id);
+  var num=parseFloat(val);
+  if(chip&&!isNaN(num)){
+    var marker=BLOOD_MARKERS.find(function(m){return m.id===id;});
+    if(marker){
+      var status=getBloodStatus(marker,num);
+      chip.textContent=status.icon;
+      chip.title=status.label;
+      chip.style.color=status.color;
+    }
+  }else if(chip){chip.textContent="";}
+}
+
+function getBloodStatus(marker,val){
+  if(marker.warn_low&&val<marker.warn_low)   return{icon:"🚨",label:"Critical Low", color:"#f87171",level:3};
+  if(marker.warn_high&&val>marker.warn_high) return{icon:"🚨",label:"Critical High",color:"#f87171",level:3};
+  if(marker.low&&val<marker.low)             return{icon:"⚠️",label:"Low",          color:"#fbbf24",level:2};
+  if(marker.high&&val>marker.high)           return{icon:"⚠️",label:"High",         color:"#fbbf24",level:2};
+  return{icon:"✅",label:"Normal",color:"#4ade80",level:0};
+}
+
+function skipBloodPanel(){
+  quizAnswers["blood_panel"]={skipped:true};
+  quizNext();
+}
+
+function buildBloodPanelHtml(accent){
+  var panel=quizAnswers["blood_panel"]||{};
+  var groupsHtml=BLOOD_GROUPS.map(function(g){
+    var markers=BLOOD_MARKERS.filter(function(m){return m.group===g.id;});
+    var rows=markers.map(function(m){
+      var val=panel[m.id]||"";
+      var num=parseFloat(val);
+      var status=(!isNaN(num)&&val!=="")?getBloodStatus(m,num):null;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="display:flex;align-items:center;gap:5px">'+
+            '<span style="font-size:12px">'+m.icon+'</span>'+
+            '<span style="color:#dce9f5;font-size:12px;font-weight:600">'+m.label+'</span>'+
+            '<span id="bflag_'+m.id+'" style="font-size:11px;cursor:default" title="">'+(status?status.icon:"")+'</span>'+
+          '</div>'+
+          '<div style="color:#2d4558;font-size:10px;font-family:monospace">'+m.unit+' · '+m.tip+'</div>'+
+        '</div>'+
+        '<input type="number" step="0.1" value="'+h(val)+'"'+
+          ' oninput="updateBloodValue(\''+m.id+'\',this.value)"'+
+          ' placeholder="—"'+
+          ' style="width:80px;padding:7px 9px;background:rgba(255,255,255,0.05);border:1.5px solid '+(status?(status.color+'60'):'rgba(255,255,255,0.12)')+';border-radius:7px;color:#dce9f5;font-size:13px;font-family:monospace;outline:none;text-align:center"/>'+
+      '</div>';
+    }).join("");
+    return '<div style="margin-bottom:14px">'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">'+
+        '<span style="font-size:14px">'+g.icon+'</span>'+
+        '<span style="font-size:10px;font-family:monospace;color:'+g.color+';letter-spacing:1px">'+g.label.toUpperCase()+'</span>'+
+      '</div>'+
+      '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:8px 12px">'+
+        rows+
+      '</div>'+
+    '</div>';
+  }).join("");
+
+  var filledCount=Object.keys(panel).filter(function(k){return k!=="skipped"&&panel[k]!==""&&panel[k]!==undefined;}).length;
+
+  return '<p style="font-size:12px;color:#4a6070;line-height:1.6;margin-bottom:14px">'+
+    'Enter any available blood test values. Leave blank if not available. '+
+    'Results are used to personalise your dietary recommendations and identify nutritional gaps.'+
+  '</p>'+
+  (filledCount?'<div style="font-size:10px;font-family:monospace;color:#4ade80;margin-bottom:12px">✓ '+filledCount+' value'+(filledCount>1?"s":"")+" entered</div>":"")+
+  groupsHtml+
+  '<button onclick="skipBloodPanel()" style="width:100%;padding:9px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;color:#2d4558;font-size:11px;font-family:monospace;cursor:pointer;margin-top:4px">Skip — no blood test available</button>';
+}
+
+// ── Blood analysis card for results ─────────────────────────────────────
+function buildBloodAnalysisCard(accent){
+  var panel=ANSWERS.blood_panel;
+  if(!panel||panel.skipped)return"";
+  var vals=Object.keys(panel).filter(function(k){return k!=="skipped"&&panel[k]!==""&&panel[k]!==undefined;});
+  if(!vals.length)return"";
+
+  var abnormal=[];
+  var normal=[];
+  vals.forEach(function(id){
+    var marker=BLOOD_MARKERS.find(function(m){return m.id===id;});
+    if(!marker)return;
+    var num=parseFloat(panel[id]);
+    if(isNaN(num))return;
+    var status=getBloodStatus(marker,num);
+    if(status.level>0)abnormal.push({marker:marker,val:num,status:status});
+    else normal.push({marker:marker,val:num,status:status});
+  });
+
+  // Sort by severity
+  abnormal.sort(function(a,b){return b.status.level-a.status.level;});
+
+  var abnHtml=abnormal.length?abnormal.map(function(item){
+    var m=item.marker; var s=item.status;
+    var note=s.level===3?(item.val<(m.low||0)?m.warn_note:m.warn_note)
+             :(item.val<(m.low||Infinity)?m.low_note:m.high_note);
+    return '<div style="background:'+s.color+'08;border:1px solid '+s.color+'25;border-left:3px solid '+s.color+';border-radius:8px;padding:11px 13px;margin-bottom:8px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<span style="font-size:13px">'+m.icon+'</span>'+
+          '<span style="color:#dce9f5;font-size:13px;font-weight:700">'+m.label+'</span>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<span style="font-family:monospace;font-size:13px;font-weight:700;color:'+s.color+'">'+item.val+' <span style="font-size:10px;font-weight:400">'+m.unit+'</span></span>'+
+          '<span style="font-size:14px">'+s.icon+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#6b7f94;line-height:1.55;font-family:\'DM Sans\',sans-serif">'+(note||"")+'</div>'+
+    '</div>';
+  }).join(""):"";
+
+  var normHtml=normal.length?
+    '<div style="background:rgba(74,222,128,0.04);border:1px solid rgba(74,222,128,0.12);border-radius:8px;padding:10px 13px">'+
+      '<div style="font-size:9px;font-family:monospace;color:#4ade80;letter-spacing:1px;margin-bottom:7px">✅ WITHIN NORMAL RANGE</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px">'+
+        normal.map(function(item){
+          return '<span style="padding:3px 9px;border-radius:8px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.15);font-size:10px;font-family:monospace;color:#4ade80">'+
+            item.marker.label+' '+item.val+' '+item.marker.unit+'</span>';
+        }).join("")+
+      '</div>'+
+    '</div>':"";
+
+  return '<div style="background:rgba(248,113,113,0.03);border:1px solid rgba(248,113,113,0.15);border-left:3px solid #f87171;border-radius:11px;padding:17px;margin-bottom:14px">'+
+    '<div style="color:#f87171;font-family:serif;font-size:15px;margin-bottom:3px">🩸 Blood Panel Analysis</div>'+
+    '<div style="color:#3d5a70;font-size:10px;font-family:monospace;margin-bottom:12px">'+vals.length+' markers entered · '+(abnormal.length||"No")+" out-of-range value"+(abnormal.length!==1?"s":"")+'</div>'+
+    (abnHtml||"")+
+    (normHtml||"")+
+  '</div>';
 }
 
 
@@ -5214,6 +5655,36 @@ function commitSaveRecallToPatient(patientId){
   var banner=document.getElementById("save-confirm-banner");
   if(banner){banner.textContent="✓ Recall saved to "+p.name;banner.style.display="block";setTimeout(function(){if(banner)banner.style.display="none";},3000);}
 }
+function copyMpPrompt(){
+  var prompt="";
+  try{prompt=sessionStorage.getItem("mp_prompt")||"";}catch(e){}
+  if(!prompt){alert("No prompt found. Please select a patient and click Generate first.");return;}
+  if(navigator.clipboard){navigator.clipboard.writeText(prompt).then(function(){alert("✓ Prompt copied! Now open Claude and paste it.");}).catch(function(){promptFallback(prompt);});}
+  else{promptFallback(prompt);}
+}
+function promptFallback(text){
+  var ta=document.createElement("textarea");
+  ta.value=text;ta.style.position="fixed";ta.style.top="0";ta.style.left="0";
+  document.body.appendChild(ta);ta.focus();ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  alert("✓ Prompt copied!");
+}
+function loadMpJson(){
+  var ta=document.getElementById("mp-json-input");
+  if(!ta||!ta.value.trim()){alert("Please paste the JSON from Claude first.");return;}
+  try{
+    var text=ta.value.trim();
+    var match=text.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error("No JSON found in the pasted text.");
+    mpPlan=JSON.parse(match[0]);
+    mpState="done";mpExpandedDay=0;mpShowShopping=false;
+    render();
+  }catch(e){
+    alert("Could not parse the plan. Make sure you copied the full JSON response from Claude.\n\nError: "+e.message);
+  }
+}
+
 function toggleRecallFoods(btn){
   var panel=btn.nextElementSibling;if(!panel)return;
   var hidden=panel.style.display==="none"||!panel.style.display;
@@ -5506,7 +5977,20 @@ function buildPatientContext(patId){
   var carbTarget=Math.round((targetKcal-protTarget*4-fatTarget*9)/4);
   var healthConds=(a.health||[]).filter(function(hh){return hh!=="None";});
   var restrictions=(a.restrictions||[]).filter(function(r){return r!=="None";});
-  return{name,goal,bmi,wkg,hcm,ageMid,isFemale,tdee,targetKcal,protTarget,fatTarget,carbTarget,healthConds,restrictions,dietNow:a.diet_now||"",activity:a.activity||"",supps,latestRecall,a};
+  var bpd=a.blood_panel||{};
+  var bloodFindings="";
+  if(!bpd.skipped&&typeof BLOOD_MARKERS!=="undefined"){
+    var bfArr=[];
+    BLOOD_MARKERS.forEach(function(m){
+      var v=parseFloat(bpd[m.id]);
+      if(!isNaN(v)&&bpd[m.id]!==""){
+        var s=getBloodStatus(m,v);
+        if(s.level>0)bfArr.push(m.label+" "+v+" "+m.unit+" ("+s.label+")");
+      }
+    });
+    bloodFindings=bfArr.length?bfArr.join("; "):"All entered values within normal range";
+  }
+  return{name,goal,bmi,wkg,hcm,ageMid,isFemale,tdee,targetKcal,protTarget,fatTarget,carbTarget,healthConds,restrictions,dietNow:a.diet_now||"",activity:a.activity||"",supps,latestRecall,bloodFindings,a};
 }
 
 // ── Prompt builder ───────────────────────────────────────────────────────
@@ -5520,33 +6004,32 @@ function buildMealPlanPrompt(ctx){
     recallSection="MOST RECENT 24H RECALL (use to understand patient preferences and eating patterns):\nFoods: "+foods+"\nEstimated macros: "+m.kcal+"kcal, "+m.protein_g+"g protein, "+m.carbs_g+"g carbs, "+m.fat_g+"g fat, "+m.fibre_g+"g fibre\nDiet quality score: "+(ra.score||"not scored")+"/100\nGaps identified: "+(ra.gaps||[]).join("; ");
   }
   return "You are a registered dietitian creating a personalised 7-day meal plan. Use the Mediterranean and Greek food tradition as a primary reference, grounded in USDA FoodData Central nutritional data. Be specific with portions in grams.\n\nPATIENT PROFILE:\n- Name: "+ctx.name+"\n- Goal: "+goalLabel+"\n- Age: "+ctx.ageMid+", Sex: "+(ctx.isFemale?"Female":"Male")+"\n- Height: "+Math.round(ctx.hcm)+"cm, Weight: "+Math.round(ctx.wkg)+"kg"+(ctx.bmi?", BMI: "+ctx.bmi.toFixed(1):"")+"\n- Activity: "+ctx.activity+"\n- TDEE: "+ctx.tdee+" kcal/day\n- Daily targets: "+ctx.targetKcal+" kcal | "+ctx.protTarget+"g protein | "+ctx.carbTarget+"g carbs | "+ctx.fatTarget+"g fat\n- Current diet: "+ctx.dietNow+"\n- Dietary restrictions: "+(ctx.restrictions.length?ctx.restrictions.join(", "):"none")+"\n- Health conditions: "+(ctx.healthConds.length?ctx.healthConds.join(", "):"none")+"\n- Current supplements: "+(ctx.supps.length?ctx.supps.join(", "):"none")+"\n\n"+(recallSection?recallSection+"\n\n":"")+"\nINSTRUCTIONS:\n1. Create 7 days of meals: breakfast, morning_snack, lunch, afternoon_snack, dinner.\n2. Each meal must include: meal name, ingredients list (each with name, amount in grams, approximate kcal, protein_g, carbs_g, fat_g from USDA data), preparation method (1-2 sentences), and meal total macros.\n3. Vary meals across the week — do not repeat the same main dish within 4 days.\n4. Respect all dietary restrictions strictly.\n5. Adjust for health conditions (e.g. low sodium for hypertension, low GI for diabetes).\n6. Incorporate Greek/Mediterranean foods: olive oil, legumes, fish, seasonal vegetables, yogurt, herbs.\n7. Include a consolidated shopping list at the end grouped by category.\n8. Total daily kcal should be within ±100 of the target "+ctx.targetKcal+" kcal.\n\nReturn ONLY raw valid JSON (no markdown, no backticks):\n{\"patient\":\"name\",\"goal\":\"goal\",\"daily_target_kcal\":"+ctx.targetKcal+",\"protein_target_g\":"+ctx.protTarget+",\"days\":[{\"day\":1,\"day_name\":\"Monday\",\"total_kcal\":0,\"total_protein_g\":0,\"total_carbs_g\":0,\"total_fat_g\":0,\"meals\":{\"breakfast\":{\"name\":\"meal name\",\"prep\":\"How to prepare in 1-2 sentences.\",\"ingredients\":[{\"name\":\"ingredient\",\"amount_g\":100,\"kcal\":165,\"protein_g\":31,\"carbs_g\":0,\"fat_g\":3.6}],\"total_kcal\":0,\"total_protein_g\":0,\"total_carbs_g\":0,\"total_fat_g\":0},\"morning_snack\":{},\"lunch\":{},\"afternoon_snack\":{},\"dinner\":{}}},{...6 more days}],\"shopping_list\":{\"proteins\":[],\"grains\":[],\"vegetables\":[],\"fruits\":[],\"dairy_eggs\":[],\"pantry\":[]},\"dietitian_notes\":\"2-3 sentences on the nutritional strategy and key considerations for this patient.\"}";
+  var goalLabel=ctx.goal==="loss"?"Fat Loss / Weight Management":ctx.goal==="gain"?"Muscle Gain / Hypertrophy":"General Health & Wellness";
+  var recallSection="";
+  if(ctx.latestRecall){
+    var ra=ctx.latestRecall;
+    var m=ra.macros||{};
+    var foods=(ra.foods||[]).map(function(sl){return sl.slot+": "+sl.foods.join(", ");}).join("; ");
+    recallSection="MOST RECENT 24H RECALL (use to understand patient preferences and eating patterns):\nFoods: "+foods+"\nEstimated macros: "+m.kcal+"kcal, "+m.protein_g+"g protein, "+m.carbs_g+"g carbs, "+m.fat_g+"g fat, "+m.fibre_g+"g fibre\nDiet quality score: "+(ra.score||"not scored")+"/100\nGaps identified: "+(ra.gaps||[]).join("; ");
+  }
+  return "You are a registered dietitian creating a personalised 7-day meal plan. Use the Mediterranean and Greek food tradition as a primary reference, grounded in USDA FoodData Central nutritional data. Be specific with portions in grams.\n\nPATIENT PROFILE:\n- Name: "+ctx.name+"\n- Goal: "+goalLabel+"\n- Age: "+ctx.ageMid+", Sex: "+(ctx.isFemale?"Female":"Male")+"\n- Height: "+Math.round(ctx.hcm)+"cm, Weight: "+Math.round(ctx.wkg)+"kg"+(ctx.bmi?", BMI: "+ctx.bmi.toFixed(1):"")+"\n- Activity: "+ctx.activity+"\n- TDEE: "+ctx.tdee+" kcal/day\n- Daily targets: "+ctx.targetKcal+" kcal | "+ctx.protTarget+"g protein | "+ctx.carbTarget+"g carbs | "+ctx.fatTarget+"g fat\n- Current diet: "+ctx.dietNow+"\n- Dietary restrictions: "+(ctx.restrictions.length?ctx.restrictions.join(", "):"none")+"\n- Health conditions: "+(ctx.healthConds.length?ctx.healthConds.join(", "):"none")+"\n- Current supplements: "+(ctx.supps.length?ctx.supps.join(", "):"none")+"\n\n"+(recallSection?recallSection+"\n\n":"")+"\nINSTRUCTIONS:\n1. Create 7 days of meals: breakfast, morning_snack, lunch, afternoon_snack, dinner.\n2. Each meal must include: meal name, ingredients list (each with name, amount in grams, approximate kcal, protein_g, carbs_g, fat_g from USDA data), preparation method (1-2 sentences), and meal total macros.\n3. Vary meals across the week — do not repeat the same main dish within 4 days.\n4. Respect all dietary restrictions strictly.\n5. Adjust for health conditions (e.g. low sodium for hypertension, low GI for diabetes).\n6. Incorporate Greek/Mediterranean foods: olive oil, legumes, fish, seasonal vegetables, yogurt, herbs.\n7. Include a consolidated shopping list at the end grouped by category.\n8. Total daily kcal should be within ±100 of the target "+ctx.targetKcal+" kcal.\n\nReturn ONLY raw valid JSON (no markdown, no backticks):\n{\"patient\":\"name\",\"goal\":\"goal\",\"daily_target_kcal\":"+ctx.targetKcal+",\"protein_target_g\":"+ctx.protTarget+",\"days\":[{\"day\":1,\"day_name\":\"Monday\",\"total_kcal\":0,\"total_protein_g\":0,\"total_carbs_g\":0,\"total_fat_g\":0,\"meals\":{\"breakfast\":{\"name\":\"meal name\",\"prep\":\"How to prepare in 1-2 sentences.\",\"ingredients\":[{\"name\":\"ingredient\",\"amount_g\":100,\"kcal\":165,\"protein_g\":31,\"carbs_g\":0,\"fat_g\":3.6}],\"total_kcal\":0,\"total_protein_g\":0,\"total_carbs_g\":0,\"total_fat_g\":0},\"morning_snack\":{},\"lunch\":{},\"afternoon_snack\":{},\"dinner\":{}}},{...6 more days}],\"shopping_list\":{\"proteins\":[],\"grains\":[],\"vegetables\":[],\"fruits\":[],\"dairy_eggs\":[],\"pantry\":[]},\"dietitian_notes\":\"2-3 sentences on the nutritional strategy and key considerations for this patient.\"}";
 }
 
 // ── Generate plan ────────────────────────────────────────────────────────
-async function generateMealPlan(){
+function generateMealPlan(){
   var patId=mpSelectedPatient;
-  if(!patId){alert("Please select a patient or use the current assessment.");return;}
+  if(!patId){alert("Please select a patient first.");return;}
   var ctx=buildPatientContext(patId);
   if(!ctx){alert("No patient data found.");return;}
-  mpState="generating";mpErr="";mpPlan=null;
-  render();
+  // Build the prompt for Claude
   var prompt=buildMealPlanPrompt(ctx);
-  try{
-    var res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:8000,messages:[{role:"user",content:prompt}]}),
-    });
-    if(!res.ok){var t=await res.text();throw new Error("API "+res.status+": "+t.slice(0,200));}
-    var data=await res.json();
-    var text=data.content?.find(function(b){return b.type==="text";})?.text||"";
-    var match=text.match(/\{[\s\S]*\}/);
-    if(!match)throw new Error("No JSON in response");
-    mpPlan=JSON.parse(match[0]);
-    mpState="done";mpExpandedDay=0;mpShowShopping=false;
-  }catch(e){
-    mpErr=e.message;mpState="error";
-  }
+  // Copy prompt to clipboard and open Claude
+  var encoded=encodeURIComponent(prompt);
+  // Open claude.ai with the prompt pre-filled
+  var claudeUrl="https://claude.ai/new?q="+encoded.slice(0,2000);
+  // Store full prompt in sessionStorage for copy
+  try{sessionStorage.setItem("mp_prompt",prompt);}catch(e){}
+  mpState="ready_to_copy";
   render();
 }
 
@@ -5801,5 +6284,28 @@ function buildMealPlanPage(){
     </div>
   </div>
 </div>
+<!-- API KEY MODAL -->
+<div id="api-key-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;z-index:1500;padding:16px" onclick="if(event.target===this)this.style.display='none'">
+  <div style="width:100%;max-width:420px;background:#0a1825;border:1px solid rgba(167,139,250,0.2);border-radius:16px;padding:24px 22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;color:#a78bfa;font-family:monospace;letter-spacing:1.5px;margin-bottom:3px">🔑 AI SETTINGS</div>
+        <div style="font-size:17px;font-family:serif;color:#dce9f5">Anthropic API Key</div>
+      </div>
+      <button onclick="document.getElementById('api-key-overlay').style.display='none'" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4a6070;width:32px;height:32px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <p style="color:#5a7090;font-size:12px;line-height:1.6;margin-bottom:16px">Required for AI features: 24h Recall analysis, Meal Planning, Nutrition trends, and Supplement advice.<br><br>Get a free key at <strong style="color:#a78bfa">console.anthropic.com</strong></p>
+    <label style="display:block;font-size:10px;color:#4a6070;font-family:monospace;letter-spacing:1px;margin-bottom:7px">YOUR API KEY</label>
+    <input id="api-key-input" type="password" placeholder="sk-ant-..." style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(167,139,250,0.25);border-radius:9px;color:#dce9f5;font-size:13px;font-family:monospace;outline:none;box-sizing:border-box"/>
+    <div id="api-key-status" style="font-size:11px;font-family:monospace;color:#3d5a70;margin-top:8px;min-height:18px"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="clearApiKey()" style="flex:1;padding:11px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:9px;color:#f87171;font-size:13px;cursor:pointer">Clear Key</button>
+      <button onclick="saveApiKey()" style="flex:2;padding:11px;background:linear-gradient(135deg,#a78bfa,#7c3aed);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:14px;cursor:pointer">Save Key</button>
+    </div>
+    <p style="text-align:center;font-size:10px;color:#1e3045;font-family:monospace;margin-top:12px">Key stored only in your browser · Never sent to our servers</p>
+  </div>
+</div>
+
 </body>
 </html>
+"- Blood panel abnormalities: "+(ctx.bloodFindings||"none reported")+"\\n"+
