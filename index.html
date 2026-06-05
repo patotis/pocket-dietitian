@@ -676,6 +676,29 @@ function selectGoal(g){
 // ═══════════════════════════════════════════════
 // BIOMETRICS HELPERS
 // ═══════════════════════════════════════════════
+function getBodyFatLabel(bf,sex){
+  if(sex==="F"){
+    if(bf<14)return"Essential Fat";
+    if(bf<21)return"Athletic";
+    if(bf<25)return"Fit";
+    if(bf<32)return"Average";
+    return"Obese";
+  }else{
+    if(bf<6)return"Essential Fat";
+    if(bf<14)return"Athletic";
+    if(bf<18)return"Fit";
+    if(bf<25)return"Average";
+    return"Obese";
+  }
+}
+function getBodyFatColor(bf,sex){
+  var label=getBodyFatLabel(bf,sex);
+  if(label==="Essential Fat")return"#38bdf8";
+  if(label==="Athletic")return"#4ade80";
+  if(label==="Fit")return"#22d3ee";
+  if(label==="Average")return"#fbbf24";
+  return"#f87171";
+}
 function calcBMI(bio){
   if(!bio)return null;
   let hm,wk;
@@ -862,6 +885,26 @@ function buildQuizScreen(){
       </div>
       `}
 
+      <!-- Body fat % optional -->
+      <div style="margin-bottom:18px">
+        <label class="mono" style="display:block;font-size:9px;color:#4a6070;letter-spacing:1.5px;margin-bottom:8px">💪 BODY FAT % <span style="color:#2d4558">(optional — if known)</span></label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="bio-bodyfat" type="number" min="3" max="60" step="0.1" placeholder="e.g. 22"
+            value="${bioVal.body_fat||""}" 
+            oninput="updateBio('body_fat',this.value)"
+            style="flex:1;padding:13px 14px;background:rgba(255,255,255,0.05);border:1.5px solid ${bioVal.body_fat?accent:'rgba(255,255,255,0.1)'};border-radius:9px;color:#dce9f5;font-size:18px;font-weight:700;outline:none;transition:border-color .2s"/>
+          <span style="color:#4a6070;font-size:13px;font-family:monospace;flex-shrink:0">%</span>
+        </div>
+        ${bioVal.body_fat?`
+        <div style="margin-top:8px;background:${getBodyFatColor(parseFloat(bioVal.body_fat),bioVal.unit==='imperial'?'M':ANSWERS.sex==='Female'?'F':'M')+'12'};border:1px solid ${getBodyFatColor(parseFloat(bioVal.body_fat),ANSWERS.sex==='Female'?'F':'M')+'30'};border-radius:8px;padding:10px 13px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="mono" style="font-size:9px;color:${getBodyFatColor(parseFloat(bioVal.body_fat),ANSWERS.sex==='Female'?'F':'M')};letter-spacing:1.5px;margin-bottom:2px">BODY FAT CATEGORY</div>
+            <div style="color:#dce9f5;font-size:15px;font-weight:700">${getBodyFatLabel(parseFloat(bioVal.body_fat),ANSWERS.sex==='Female'?'F':'M')}</div>
+          </div>
+          <div style="color:${getBodyFatColor(parseFloat(bioVal.body_fat),ANSWERS.sex==='Female'?'F':'M')};font-size:26px;font-weight:700;font-family:serif">${bioVal.body_fat}%</div>
+        </div>`:''}
+      </div>
+
       <!-- BMI live preview -->
       ${bmi?`
       <div style="background:${getBMIColor(bmi)}12;border:1px solid ${getBMIColor(bmi)}30;border-radius:10px;padding:14px 16px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between">
@@ -951,6 +994,12 @@ function quizNext(){
     // compute results
     const isLoss=GOAL==="loss";
     const isCheckup=GOAL==="checkup";
+    // Adjust answers with lean mass protein target if body fat known
+    if(ANSWERS.biometrics&&ANSWERS.biometrics.body_fat){
+      var bfp=parseFloat(ANSWERS.biometrics.body_fat)||null;
+      var bw=(ANSWERS.biometrics.unit==="imperial"?(parseFloat(ANSWERS.biometrics.weight_lb)||0)*0.453592:(parseFloat(ANSWERS.biometrics.weight_kg)||0));
+      if(bfp&&bw)ANSWERS._leanMass=Math.round(bw*(1-bfp/100)*10)/10;
+    }
     const dk=isLoss?selLossDiet(ANSWERS):isCheckup?selCheckupDiet(ANSWERS):selGainDiet(ANSWERS);
     CUR_DIET=isLoss?LOSS_EV[dk]:isCheckup?CHECKUP_EV[dk]:GAIN_EV[dk];
     CUR_TIPS=isLoss?selLossTips(ANSWERS):isCheckup?selCheckupTips(ANSWERS):selGainTips(ANSWERS);
@@ -1241,6 +1290,16 @@ function computeTwinMetrics(isLoss){
 function buildDigitalTwin(isLoss,accent){
   var m=computeTwinMetrics(isLoss);
   var isCheckup=GOAL==="checkup";
+  // Body fat & lean mass
+  var bv=ANSWERS.biometrics||{};
+  var bfPct=parseFloat(bv.body_fat)||null;
+  var wkg=(bv.unit==="imperial"?(parseFloat(bv.weight_lb)||0)*0.453592:(parseFloat(bv.weight_kg)||0));
+  var leanMass=bfPct&&wkg?Math.round(wkg*(1-bfPct/100)*10)/10:null;
+  var fatMass=bfPct&&wkg?Math.round(wkg*(bfPct/100)*10)/10:null;
+  var sex=ANSWERS.sex==="Female"?"F":"M";
+  var bfLabel=bfPct?getBodyFatLabel(bfPct,sex):null;
+  var bfColor=bfPct?getBodyFatColor(bfPct,sex):"#3d5a70";
+
   var bp=ANSWERS.blood_panel||{};
   if(!bp.skipped){
     var gl=parseFloat(bp.glucose);if(!isNaN(gl)&&gl>125){m.heart=Math.min(m.heart,60);}
@@ -1342,6 +1401,37 @@ function buildDigitalTwin(isLoss,accent){
 
   var focusPanelId="twinFocus";
 
+  // ── Body composition card (if body fat entered) ──
+  var bfCardHtml='';
+  if(bfPct&&leanMass&&fatMass){
+    bfCardHtml=
+      '<div style="background:'+bfColor+'0a;border:1px solid '+bfColor+'25;border-radius:10px;padding:12px 14px;margin-bottom:12px">'+
+        '<div class="mono" style="font-size:8px;color:'+bfColor+';letter-spacing:1.5px;margin-bottom:8px">💪 BODY COMPOSITION</div>'+
+        '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+          '<div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px;text-align:center">'+
+            '<div style="color:'+bfColor+';font-size:20px;font-weight:700;font-family:serif">'+bfPct+'%</div>'+
+            '<div class="mono" style="font-size:8px;color:#3d5a70">BODY FAT</div>'+
+            '<div style="font-size:10px;color:'+bfColor+'">'+bfLabel+'</div>'+
+          '</div>'+
+          '<div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px;text-align:center">'+
+            '<div style="color:#4ade80;font-size:20px;font-weight:700;font-family:serif">'+leanMass+'kg</div>'+
+            '<div class="mono" style="font-size:8px;color:#3d5a70">LEAN MASS</div>'+
+            '<div style="font-size:10px;color:#4ade80">Target: preserve</div>'+
+          '</div>'+
+          '<div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px;text-align:center">'+
+            '<div style="color:#f97316;font-size:20px;font-weight:700;font-family:serif">'+fatMass+'kg</div>'+
+            '<div class="mono" style="font-size:8px;color:#3d5a70">FAT MASS</div>'+
+            '<div style="font-size:10px;color:#f97316">'+(isLoss?'Target: reduce':'Monitor')+'</div>'+
+          '</div>'+
+        '</div>'+
+        // Body fat bar
+        '<div style="height:6px;background:#121e2a;border-radius:3px;margin-bottom:4px">'+
+          '<div style="height:100%;width:'+Math.min(100,bfPct*2)+'%;background:'+bfColor+';border-radius:3px"></div>'+
+        '</div>'+
+        '<div class="mono" style="font-size:9px;color:#2d4558">Protein target adjusted to lean mass: '+Math.round(leanMass*2.2)+'g/day (2.2g/kg LBM)</div>'+
+      '</div>';
+  }
+
   return '<style>'+
     '.twin-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}'+
     '.twin-row:last-child{border-bottom:none}'+
@@ -1438,6 +1528,8 @@ function buildDigitalTwin(isLoss,accent){
   '</div>'+
 
   // ── Active conditions panel
+  bfCardHtml+
+
   (m.activeConditions&&m.activeConditions.length?
     '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 15px;margin-bottom:12px">'+
       '<div class="mono" style="font-size:8px;color:#3d5a70;letter-spacing:1.5px;margin-bottom:10px">&#x1F3E5; ACTIVE HEALTH CONDITIONS</div>'+
@@ -6616,7 +6708,10 @@ function buildPatientContext(patId){
   var tdee=Math.round(bmr*af);
   var deficit=goal==="loss"?-400:goal==="gain"?350:0;
   var targetKcal=tdee+deficit;
-  var protTarget=wkg>0?Math.round(wkg*(goal==="gain"?2.0:1.4)):Math.round(targetKcal*0.3/4);
+  // Use lean body mass for protein target if body fat is known
+  var bfp2=parseFloat((a.biometrics||{}).body_fat)||null;
+  var lbm=bfp2?Math.round(wkg*(1-bfp2/100)*10)/10:wkg;
+  var protTarget=lbm>0?Math.round(lbm*(goal==="gain"?2.2:1.8)):Math.round(targetKcal*0.3/4);
   var fatTarget=Math.round(targetKcal*0.28/9);
   var carbTarget=Math.round((targetKcal-protTarget*4-fatTarget*9)/4);
   var healthConds=(a.health||[]).filter(function(hh){return hh!=="None";});
@@ -6634,7 +6729,9 @@ function buildPatientContext(patId){
     });
     bloodFindings=bfArr.length?bfArr.join("; "):"All entered values within normal range";
   }
-  return{name,goal,bmi,wkg,hcm,ageMid,isFemale,tdee,targetKcal,protTarget,fatTarget,carbTarget,healthConds,restrictions,dietNow:a.diet_now||"",activity:a.activity||"",supps,latestRecall,bloodFindings,a};
+  var bfpCtx=parseFloat((a.biometrics||{}).body_fat)||null;
+  var bodyFatStr=bfpCtx?", Body Fat: "+bfpCtx+"%, Lean Mass: "+Math.round(wkg*(1-bfpCtx/100)*10)/10+"kg":"";
+  return{name,goal,bmi,wkg,hcm,ageMid,isFemale,tdee,targetKcal,protTarget,fatTarget,carbTarget,healthConds,restrictions,dietNow:a.diet_now||"",activity:a.activity||"",supps,latestRecall,bloodFindings,bodyFatStr,a};
 }
 
 // ── Prompt builder ───────────────────────────────────────────────────────
