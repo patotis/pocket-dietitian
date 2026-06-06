@@ -5370,6 +5370,12 @@ var mpSelectedPatient=null;
 var mpExpandedDay=0;
 var mpShowShopping=false;
 
+var mpState="idle";
+var mpPlan=null;
+var mpErr="";
+var mpSelectedPatient=null;
+var mpExpandedDay=0;
+var mpShowShopping=false;
 function buildMealPlanPage(){
   var accent="#22d3ee";
   var patients=dbGet();
