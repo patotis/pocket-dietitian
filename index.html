@@ -6924,7 +6924,7 @@ function buildMealPlanPage(){
     "</div>"+
     (patientOptions?"<div style=\"font-size:9px;color:#3d5a70;font-family:monospace;letter-spacing:1px;margin-bottom:8px\">SELECT PATIENT</div>"+patientOptions:"<div style=\"color:#2d4558;font-size:12px;font-family:monospace;text-align:center;padding:20px\">Complete an assessment or add a patient to get started.</div>")+
     summaryHtml+
-    (mpSelectedPatient?"<button onclick=\"showMealPlanPrompt()\" style=\"width:100%;padding:14px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer\">📋 Generate Prompt for Claude</button>":"")+
+    (mpSelectedPatient?"<button onclick=\"generateMealPlan()\" style=\"width:100%;padding:14px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);border:none;border-radius:9px;color:#04101a;font-weight:700;font-size:14px;cursor:pointer\">📋 Generate Prompt for Claude</button>":"")+
     "<p style=\"text-align:center;font-size:9px;color:#1a2e3d;font-family:monospace;margin-top:12px\">Powered by Claude AI · USDA FoodData Central references · ~30s generation time</p>"+
   "</div>";
 }
