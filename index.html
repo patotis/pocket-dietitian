@@ -1873,6 +1873,7 @@ function buildDietTab(isLoss,accent,diet){
     ${buildCalorieCard(isLoss)}
     ${buildSuppCard(diet.color)}
     ${buildBloodAnalysisCard(diet.color)}
+    ${buildHandbookCard(diet.color)}
     <div class="clin-note">
       <div class="mono" style="color:#f87171;font-size:9px;letter-spacing:1.5px;margin-bottom:4px">⚠️ CLINICAL NOTE</div>
       <p style="color:#7a9ab8;font-size:12px;line-height:1.6;margin:0">${isLoss?"Refer to a physician or RD if: T2D requiring medication adjustment, active eating disorder history, BMI &gt;40, or recent GI surgery.":isCheckup?"Annual blood panel (glucose, HbA1c, lipids, Vit D, B12, TSH, CRP) is the most impactful preventive health action. Always consult your physician for personalised screening schedules.":"Patients with kidney disease must NOT follow high-protein protocols (&gt;1.2g/kg) without nephrologist clearance. Creatine is contraindicated in renal insufficiency."}</p>
@@ -4575,6 +4576,158 @@ var NATURO_DB=[
     citation:"Wilson JM et al. (2014). The effects of HMB on muscle mass, strength, and power. J Strength Cond Res. PMID:24755988"
   },
 
+
+{
+    id:"propolis", tags:["immune","sore throat","oral","antibacterial","antiviral","cold","wound"],
+    name:"Propolis",emoji:"🐝",category:"Bee Product",evidence:"★★★★☆",
+    headline:"Natural antimicrobial resin collected by bees. Strong antiviral, antibacterial and anti-inflammatory action. Effective for sore throat, oral inflammation, and immune support.",
+    bullets:[
+      "Contains caffeic acid phenethyl ester (CAPE) and flavonoids — broad-spectrum antimicrobial.",
+      "Spray form directly on oral mucosa: reduces sore throat pain and bacterial load within 24h.",
+      "Inhibits influenza, herpes simplex, and rhinovirus replication in vitro and in clinical studies.",
+      "Topically accelerates wound healing and reduces post-operative oral inflammation.",
+      "Combines well with Vitamin C and Zinc for synergistic immune response."
+    ],
+    dosage:"Oral spray: 3–5 sprays directly on throat 3×/day at first sign of symptoms. Capsules: 500–1000mg/day standardised extract (≥10% flavonoids).",
+    cautions:"Allergy to bee products or pollen — avoid if known allergy. Rare hypersensitivity reactions.",
+    citation:"Sforcin JM (2007). Propolis: Is there a potential for the development of new drugs? J Ethnopharmacol. PMID:17804183"
+  },
+  {
+    id:"colostrum", tags:["immune","gut","IBS","leaky gut","infection","immunity","children","athletes"],
+    name:"Bovine Colostrum",emoji:"🥛",category:"Natural Compound",evidence:"★★★★☆",
+    headline:"First milk produced after calving. Rich in immunoglobulins (IgG, IgA, IgM), lactoferrin and growth factors. Enhances gut immunity, reduces intestinal permeability, and improves upper respiratory infection resistance.",
+    bullets:[
+      "Contains 40× more IgG than mature milk — direct gut immune enhancement.",
+      "Reduces exercise-induced gut permeability ('leaky gut') in athletes: key for performance.",
+      "Meta-analysis: reduces upper respiratory tract infection incidence in athletes by 40%.",
+      "Lactoferrin: antimicrobial glycoprotein that inhibits bacterial and viral adhesion to gut mucosa.",
+      "Accelerates recovery from infectious diarrhoea, including rotavirus and C. difficile."
+    ],
+    dosage:"10–20g/day colostrum powder or 500–1000mg standardised capsules (≥25% IgG). Take on empty stomach for immune effects. Athletes: 20g/day for 8 weeks.",
+    cautions:"Bovine source — avoid in dairy allergy. Not suitable for vegans. Quality varies significantly between brands.",
+    citation:"Playford RJ et al. (2001). Bovine colostrum is a health food supplement which prevents NSAID induced gut damage. Gut. PMID:11154509"
+  },
+  {
+    id:"mastic-gum", tags:["gut","digestion","H. pylori","gastric","ulcer","GERD","dyspepsia","liver"],
+    name:"Mastic Gum (Μαστίχα)",emoji:"🌿",category:"Herbal Resin",evidence:"★★★★☆",
+    headline:"Resin from the mastic tree (Pistacia lentiscus var. chia), traditionally used in Greek medicine. Inhibits H. pylori, heals gastric ulcers, reduces dyspepsia, and has hepatoprotective effects.",
+    bullets:[
+      "Randomised trial: 1g mastic powder/day for 2 weeks eradicated H. pylori in 38% of patients vs 0% placebo.",
+      "Significantly reduces dyspepsia symptoms: upper abdominal pain, fullness, belching.",
+      "Anti-inflammatory in IBD: reduces TNF-α and IL-6 in Crohn's disease mucosa.",
+      "Hepatoprotective: reduces liver enzymes (ALT, AST, GGT) in non-alcoholic fatty liver.",
+      "Unique to Chios island, Greece — EU-registered PDO product."
+    ],
+    dosage:"1g mastic powder (or 2 × 500mg capsules) twice daily, before meals. For H. pylori: 14-day course. For dyspepsia: 4–8 weeks.",
+    cautions:"Generally very well tolerated. Rare allergy in pistachio-sensitive individuals. Not a replacement for H. pylori eradication antibiotics in confirmed infection.",
+    citation:"Dabos KJ et al. (2010). The effect of mastic gum on Helicobacter pylori: a randomized pilot study. Phytomedicine. PMID:19879118"
+  },
+  {
+    id:"pycnogenol", tags:["antioxidant","cardiovascular","circulation","skin","inflammation","blood pressure","diabetes"],
+    name:"Pycnogenol (Pine Bark Extract)",emoji:"🌲",category:"Polyphenol / Antioxidant",evidence:"★★★★☆",
+    headline:"Standardised French maritime pine bark extract. Potent OPC antioxidant with clinically proven effects on cardiovascular health, circulation, skin ageing, and inflammation.",
+    bullets:[
+      "Reduces systolic blood pressure by 4.3 mmHg in hypertensive patients (Liu 2004).",
+      "Improves microcirculation and reduces oedema in chronic venous insufficiency.",
+      "Skin: increases collagen and hyaluronic acid synthesis — reduces wrinkle depth and improves hydration.",
+      "Anti-diabetic: reduces HbA1c by 0.8% in T2DM (Zibadi 2008) and improves endothelial function.",
+      "Reduces CRP and other inflammatory markers without immunosuppression."
+    ],
+    dosage:"50–300mg/day standardised Pycnogenol® extract. Skin: 75–150mg/day. Cardiovascular: 150–200mg/day. Take with meals.",
+    cautions:"Generally very safe. May lower blood glucose — monitor if diabetic. Rare GI upset. Use standardised Pycnogenol® brand for consistency with clinical trial evidence.",
+    citation:"Liu X et al. (2004). Pycnogenol, French maritime pine bark extract, improves endothelial function of hypertensive patients. Life Sci. PMID:15147910"
+  },
+  {
+    id:"oat-extract", tags:["stress","anxiety","brain","fatigue","sleep","cognitive","adaptogen"],
+    name:"Oat Extract (Avena sativa)",emoji:"🌾",category:"Herbal",evidence:"★★★☆☆",
+    headline:"Green oat herb extract. Traditional nervine tonic for stress, anxiety, nervous exhaustion, and cognitive decline. Improves attention and inhibitory control in older adults.",
+    bullets:[
+      "Avenanthramides: unique polyphenols with anxiolytic and neuroprotective activity.",
+      "RCT (Kennedy 2017): 1600mg/day for 6 weeks significantly improved accuracy and speed on cognitive tasks.",
+      "Traditional use for nervous exhaustion, stress, and convalescence — centuries of safe use.",
+      "Mild MAO-B inhibition — may contribute to mood elevation and cognitive clarity.",
+      "Combines well with Ashwagandha and Rhodiola for comprehensive stress support."
+    ],
+    dosage:"800–1600mg standardised green oat extract daily. Tincture: 3–5ml 3×/day in water.",
+    cautions:"Generally very safe. Avoid in coeliac disease (gluten cross-reactivity possible). Not for pregnant or breastfeeding women at therapeutic doses.",
+    citation:"Kennedy DO et al. (2017). Acute and chronic effects of green oat (Avena sativa) extract on cognitive function and mood during a laboratory stressor. Nutrients. PMID:28441066"
+  },
+  {
+    id:"cynara-scolymus", tags:["liver","cholesterol","digestion","bile","IBS","bloating","LDL","detox"],
+    name:"Cynara scolymus (Artichoke / Κυνάρα)",emoji:"🌿",category:"Herbal",evidence:"★★★★☆",
+    headline:"Artichoke leaf extract stimulates bile production, supports liver detox, lowers LDL cholesterol, and relieves functional dyspepsia and bloating. Widely used in Greek and Mediterranean herbal medicine.",
+    bullets:[
+      "Cynarin and luteolin: stimulate hepatic bile secretion (choleretic) and protect hepatocytes.",
+      "RCT: 1.92g/day for 12 weeks reduced total cholesterol by 18.5% and LDL by 22.9%.",
+      "Functional dyspepsia: 320mg extract 3×/day reduced symptoms by 41% vs 22% placebo.",
+      "Prebiotic effect: inulin in artichoke feeds Bifidobacterium and Lactobacillus.",
+      "Traditional use in Biologiko Xorio protocols for liver support, digestive wellness, and lipid management."
+    ],
+    dosage:"320–640mg standardised extract (5% caffeoylquinic acids) 3×/day before meals. Liver support: continue for 8–12 weeks.",
+    cautions:"Contraindicated in bile duct obstruction and gallstones. Allergy to Asteraceae family (ragweed, daisy) — cross-reactivity possible.",
+    citation:"Wider B et al. (2009). Artichoke leaf extract for treating hypercholesterolaemia. Cochrane. PMID:19370583"
+  },
+  {
+    id:"boldo", tags:["liver","digestion","bile","gut","bloating","dyspepsia","constipation"],
+    name:"Boldo (Peumus boldus)",emoji:"🌿",category:"Herbal",evidence:"★★★☆☆",
+    headline:"Chilean medicinal herb with strong choleretic (bile-stimulating) and digestive properties. Used in Biologiko Xorio protocols for dyspepsia, bloating, and liver/gallbladder support.",
+    bullets:[
+      "Boldine: principal alkaloid with antioxidant, anti-inflammatory, and hepatoprotective activity.",
+      "Stimulates bile production and flow — improves fat digestion and relieves post-meal heaviness.",
+      "Traditionally used for liver and gallbladder complaints across South American and European herbalism.",
+      "Combines with Cynara and Sage for functional digestive complaints.",
+      "European Medicines Agency (EMA) monograph: traditional use for dyspepsia and mild biliary dysfunction."
+    ],
+    dosage:"Standardised dry extract 300mg 2–3×/day before meals. Infusion: 1–2g dried leaf in 200ml hot water, 3×/day.",
+    cautions:"Avoid in bile duct obstruction, severe liver disease, and pregnancy. Boldine has mild nephrotoxic potential at very high doses — do not exceed therapeutic range.",
+    citation:"Lanhers MC et al. (1991). Hepatoprotective and anti-inflammatory effects of a traditional medicinal plant of Chile, Peumus boldus. Planta Med. PMID:1726277"
+  },
+  {
+    id:"nadh", tags:["energy","fatigue","brain","anti-aging","mitochondria","cognitive","athletic"],
+    name:"NADH (Nicotinamide Adenine Dinucleotide)",emoji:"⚡",category:"Natural Compound",evidence:"★★★☆☆",
+    headline:"The reduced form of NAD+, essential for mitochondrial energy production. Supplemental NADH improves cognitive function, reduces fatigue, and may slow cellular ageing via NAD+ pathway.",
+    bullets:[
+      "Directly participates in the electron transport chain — generates ATP in every cell.",
+      "RCT (Forsyth 1999): 10mg/day NADH for 4 weeks reduced fatigue in chronic fatigue syndrome.",
+      "Improves alertness and psychomotor speed — used in Biologiko Xorio for cognitive and energy protocols.",
+      "Stimulates dopamine, noradrenaline, and serotonin biosynthesis.",
+      "Stacks with CoQ10 and PQQ for comprehensive mitochondrial support (used in the handbook anti-aging protocol)."
+    ],
+    dosage:"5–20mg stabilised NADH/day on an empty stomach in the morning. Sublingual tablets improve absorption significantly.",
+    cautions:"Generally safe. Very high doses may cause insomnia — avoid in evening. Limited long-term safety data above 20mg/day.",
+    citation:"Forsyth LM et al. (1999). Therapeutic effects of oral NADH on the symptoms of patients with chronic fatigue syndrome. Ann Allergy Asthma Immunol. PMID:10071523"
+  },
+  {
+    id:"pqq", tags:["brain","energy","anti-aging","mitochondria","cognitive","neuroprotection","longevity"],
+    name:"PQQ (Pyrroloquinoline Quinone)",emoji:"🔬",category:"Natural Compound",evidence:"★★★☆☆",
+    headline:"A redox cofactor that stimulates mitochondrial biogenesis (growth of new mitochondria). Neuroprotective, antioxidant, and enhances cognitive function. Used in the handbook for brain and anti-aging protocols.",
+    bullets:[
+      "The only compound proven to stimulate mitochondrial biogenesis via PGC-1α pathway.",
+      "RCT (Itoh 2016): 20mg/day PQQ for 12 weeks improved memory, attention, and cognitive function.",
+      "Protects neurons from oxidative stress and excitotoxicity — potential for Alzheimer's prevention.",
+      "Reduces CRP and IL-6 (anti-inflammatory) and LDL oxidation.",
+      "Handbook stacks: PQQ + CoQ10 for heart and brain; PQQ + Lion's Mane for cognition over 50."
+    ],
+    dosage:"10–20mg PQQ disodium salt/day. Take with food. Combine with CoQ10 ubiquinol 100–200mg for synergistic mitochondrial support.",
+    cautions:"Very safe at recommended doses. Rare GI upset. Limited long-term human data at doses >20mg/day.",
+    citation:"Itoh Y et al. (2016). Effect of the antioxidant supplement pyrroloquinoline quinone disodium salt (BioPQQ) on cognitive functions. Adv Exp Med Biol. PMID:26922669"
+  },
+  {
+    id:"zma-supplement", tags:["sleep","sports","testosterone","recovery","zinc","magnesium","muscle"],
+    name:"ZMA (Zinc + Magnesium + B6)",emoji:"💪",category:"Mineral Stack",evidence:"★★★☆☆",
+    headline:"A clinically studied combination of zinc, magnesium, and vitamin B6, taken at bedtime. Improves sleep quality, supports testosterone levels, and aids muscle recovery in athletes.",
+    bullets:[
+      "Zinc and magnesium are commonly depleted in athletes through sweat losses.",
+      "Original ZMA trial (Brilla 2000): significantly increased free testosterone and IGF-1 in NCAA football players.",
+      "Magnesium glycinate component: activates GABA-A receptors → improves deep sleep stages.",
+      "B6 (pyridoxine): cofactor for dopamine and serotonin synthesis — enhances sleep quality and mood.",
+      "Used in Biologiko Xorio handbook for sleep, recovery, and testosterone support protocols."
+    ],
+    dosage:"Standard ZMA: 30mg zinc (as monomethionine), 450mg magnesium (as aspartate), 10.5mg B6, taken 30–60 min before bed on empty stomach.",
+    cautions:"Do not take with calcium (competing absorption). Avoid with certain antibiotics (tetracyclines). Excess zinc >40mg long-term depletes copper.",
+    citation:"Brilla LR & Conte V (2000). Effects of a novel zinc-magnesium formulation on hormones and strength. J Exerc Physiol Online. ISSN:1099-5862"
+  },
+
 ];
 
 var NATURO_CATEGORIES=["All","Sleep","Stress & Anxiety","Inflammation","Gut Health","Energy & Fatigue","Brain & Cognition","Immune Support","Cardiovascular","Skin & Beauty","Women's Health","Prostate & Men's"];
@@ -5943,6 +6096,247 @@ function buildBloodAnalysisCard(accent){
     (abnHtml||"")+
     (normHtml||"")+
   '</div>';
+}
+
+
+
+// ═══════════════════════════════════════════════
+// HANDBOOK PROTOCOLS — Βιολογικό Χωριό
+// Condition → Supplement map from clinical handbook
+// ═══════════════════════════════════════════════
+var HANDBOOK_PROTOCOLS=[
+  // ── ΠΕΠΤΙΚΟ ─────────────────────────────────
+  {cat:"Πεπτικό",cond:"Διάρροια / αντιβίωση",tags:["gut","diarrhea","antibiotic","IBS"],
+   supps:["Probiotics (Lactobacillus, Saccharomyces boulardii)"],notes:"Κατά αντιβίωση και λίγες ημέρες μετά"},
+  {cat:"Πεπτικό",cond:"Δυσκοιλιότητα",tags:["gut","constipation","fibre"],
+   supps:["Fiber Complex","Psyllium","Probiotics"],notes:"Aloe vera μόνο με ιδιαίτερη προσοχή"},
+  {cat:"Πεπτικό",cond:"IBS",tags:["gut","IBS","bloating"],
+   supps:["Πολυστρωματικά Probiotics"],notes:"Παράλληλα εξατομικευμένη διατροφική παρέμβαση"},
+  {cat:"Πεπτικό",cond:"Δυσπεψία",tags:["gut","digestion","bloating"],
+   supps:["Mastic gum","Probiotics","Πεπτικά ένζυμα","Boldo","Cynara","Sage"],notes:"Ανάλογα με περίπτωση"},
+  {cat:"Πεπτικό",cond:"Φούσκωμα / μετεωρισμός",tags:["gut","bloating","digestion"],
+   supps:["Πεπτικά ένζυμα","Probiotics","Boldo","Cynara","Sage"],notes:""},
+  {cat:"Πεπτικό",cond:"Δυσανεξία στη λακτόζη",tags:["gut","lactose","enzyme"],
+   supps:["Λακτάση ανά γεύμα"],notes:"Ένζυμο λακτάσης ανά γεύμα με γαλακτοκομικά"},
+  {cat:"Πεπτικό",cond:"Δυσαπορρόφηση λίπους / στεατόρροια",tags:["gut","enzyme","liver"],
+   supps:["Πεπτικά ένζυμα με λιπάση"],notes:"Απαιτείται ιατρική παρακολούθηση"},
+  {cat:"Πεπτικό",cond:"Χαμηλή πρόσληψη ινών / διαταραγμένο μικροβίωμα",tags:["gut","fibre","microbiome"],
+   supps:["Fiber Complex","Psyllium","Greens & Fruits Complex","Probiotics"],notes:""},
+  {cat:"Πεπτικό",cond:"Υποστήριξη ήπατος / λιπώδες ήπαρ",tags:["liver","NAFLD","detox"],
+   supps:["Milk Thistle (σιλυμαρίνη)","Λεκιθίνη ηλίανθου"],notes:"Σε ηπατική νόσο → ιατρός"},
+  // ── ΑΝΟΣΟΠΟΙΗΤΙΚΟ ────────────────────────────
+  {cat:"Ανοσοποιητικό",cond:"Κοινό κρυολόγημα",tags:["immune","cold","flu","zinc"],
+   supps:["Vitamin C","Zinc","Echinacea","Propolis"],notes:"Έγκαιρη έναρξη"},
+  {cat:"Ανοσοποιητικό",cond:"Συχνές λοιμώξεις / χειμερινή πρόληψη",tags:["immune","prevention","vitamin d"],
+   supps:["Vitamin D","Probiotics","Colostrum","Echinacea"],notes:""},
+  {cat:"Ανοσοποιητικό",cond:"Λήψη αντιβίωσης",tags:["antibiotic","gut","probiotics"],
+   supps:["Probiotics"],notes:"Ταυτόχρονα + συνέχεια μετά ολοκλήρωση"},
+  {cat:"Ανοσοποιητικό",cond:"Χαμηλή άμυνα / γενική ανοσολογική υποστήριξη",tags:["immune","immunity","zinc"],
+   supps:["Vitamin D","Zinc","Propolis","Bee pollen / Colostrum"],notes:"Εφόσον χωρίς αντενδείξεις"},
+  {cat:"Ανοσοποιητικό",cond:"Πονόλαιμος / στοματικές φλεγμονές",tags:["immune","sore throat","oral"],
+   supps:["Propolis spray","Sage"],notes:"Propolis σε σπρέι ή στοματικό διάλυμα. Sage για γαργάρες"},
+  // ── ΚΟΥΡΑΣΗ / ΕΓΚΕΦΑΛΟΣ ──────────────────────
+  {cat:"Κούραση & Εγκέφαλος",cond:"Κούραση / χαμηλή ενέργεια",tags:["fatigue","energy","brain"],
+   supps:["CoQ10","NADH","Rhodiola rosea","Βασιλικός πολτός","Oat Extract"],notes:"Έλεγχος σιδήρου, B12, Vit D, ύπνου"},
+  {cat:"Κούραση & Εγκέφαλος",cond:"Κούραση αθλητών / υπερπροπόνηση",tags:["sports","fatigue","recovery","adaptogen"],
+   supps:["Ashwagandha","Rhodiola rosea","Magnesium"],notes:"Επαρκής πρωτεΐνη/υδατάνθρακες"},
+  {cat:"Κούραση & Εγκέφαλος",cond:"Άγχος / στρες",tags:["stress","anxiety","sleep","adaptogen"],
+   supps:["Ashwagandha","Rhodiola rosea","Passionflower","Valerian","Oat Extract"],notes:""},
+  {cat:"Κούραση & Εγκέφαλος",cond:"Δυσκολία ύπνου / αϋπνία",tags:["sleep","insomnia","anxiety","magnesium"],
+   supps:["Valerian","Passionflower","Magnesium","ZMA"],notes:""},
+  {cat:"Κούραση & Εγκέφαλος",cond:"Μνήμη / συγκέντρωση",tags:["brain","memory","focus","nootropic"],
+   supps:["Lion's Mane","Ginkgo","PQQ","Sage"],notes:""},
+  {cat:"Κούραση & Εγκέφαλος",cond:"Υποστήριξη εγκεφάλου / άνω των 50",tags:["brain","aging","cognitive","omega-3"],
+   supps:["Omega-3","Lion's Mane","PQQ","CoQ10"],notes:""},
+  // ── ΑΘΛΗΤΕΣ ──────────────────────────────────
+  {cat:"Αθλητές & Άσκηση",cond:"Βασική αθλητική υποστήριξη",tags:["sports","muscle","protein","creatine"],
+   supps:["Protein (whey/vegan)","Creatine","Magnesium","Electrolytes"],notes:"Ανάλογα με άσκηση"},
+  {cat:"Αθλητές & Άσκηση",cond:"Αύξηση μυϊκής μάζας / δύναμης",tags:["sports","muscle","strength","creatine"],
+   supps:["Whey/Vegan protein","Creatine","ZMA","Ashwagandha"],notes:""},
+  {cat:"Αθλητές & Άσκηση",cond:"Μυϊκή αποκατάσταση",tags:["sports","recovery","muscle","glutamine"],
+   supps:["Protein","Creatine","Glutamine"],notes:"Επαρκείς υδατάνθρακες"},
+  {cat:"Αθλητές & Άσκηση",cond:"Άσκηση υψηλής έντασης",tags:["sports","performance","beta-alanine","creatine"],
+   supps:["Beta-Alanine","Citrulline","Creatine","Caffeine"],notes:"Καφεΐνη όταν χρειάζεται"},
+  {cat:"Αθλητές & Άσκηση",cond:"Άσκηση αντοχής",tags:["sports","endurance","electrolytes","carnitine"],
+   supps:["Electrolytes","Carbs (σκόνη/gel)","Beetroot","L-Carnitine"],notes:""},
+  {cat:"Αθλητές & Άσκηση",cond:"Έντονη εφίδρωση / κράμπες",tags:["sports","cramps","electrolytes","hydration"],
+   supps:["Electrolytes","Isotonic drink","Coconut water"],notes:"Επαρκής ενυδάτωση"},
+  {cat:"Αθλητές & Άσκηση",cond:"Πριν προπόνηση - τόνωση",tags:["sports","pre-workout","caffeine","citrulline"],
+   supps:["Caffeine (gums)","Citrulline","Beetroot"],notes:"Ανάλογα με είδος άσκησης"},
+  {cat:"Αθλητές & Άσκηση",cond:"Καταπόνηση αρθρώσεων σε αθλητές",tags:["joint","sports","glucosamine","collagen"],
+   supps:["MSM","Glucosamine","Collagen","Curcumin"],notes:""},
+  // ── BEAUTY / ANTI-AGING ───────────────────────
+  {cat:"Beauty & Anti-aging",cond:"Γενική υποστήριξη δέρματος",tags:["skin","collagen","beauty","vitamin c"],
+   supps:["Marine Collagen Peptides","Vitamin C","Protein"],notes:""},
+  {cat:"Beauty & Anti-aging",cond:"Ρυτίδες / μειωμένη ελαστικότητα",tags:["skin","anti-aging","collagen","astaxanthin"],
+   supps:["Marine Collagen Peptides","Astaxanthin","Pycnogenol"],notes:""},
+  {cat:"Beauty & Anti-aging",cond:"Φωτογήρανση / UV",tags:["skin","UV","antioxidant","astaxanthin"],
+   supps:["Astaxanthin","Pycnogenol"],notes:"Δεν αντικαθιστούν αντηλιακό"},
+  {cat:"Beauty & Anti-aging",cond:"Μαλλιά και νύχια",tags:["hair","nails","biotin","zinc","iron"],
+   supps:["Biotin","Zinc","Iron"],notes:"Βιοτίνη μόνο σε ανεπάρκεια"},
+  {cat:"Beauty & Anti-aging",cond:"Ακμή / αλωπεκία / δερματικά",tags:["skin","acne","hair loss","zinc"],
+   supps:["Zinc","Evening Primrose Oil"],notes:"EPO για ατοπική δερματίτιδα"},
+  {cat:"Beauty & Anti-aging",cond:"Anti-aging / κυτταρική ενέργεια",tags:["anti-aging","antioxidant","CoQ10","longevity"],
+   supps:["NADH","PQQ","CoQ10","Astaxanthin","Pycnogenol"],notes:"Ανάλογα στόχο"},
+  // ── ΒΑΡΟΣ / ΜΕΤΑΒΟΛΙΣΜΟΣ ─────────────────────
+  {cat:"Βάρος & Μεταβολισμός",cond:"Έλεγχος βάρους / κορεσμός",tags:["weight","satiety","fibre","green tea"],
+   supps:["Fiber Complex","Green Tea Extract"],notes:"Fiber πριν γεύμα με αρκετό νερό"},
+  {cat:"Βάρος & Μεταβολισμός",cond:"Μεταβολικό σύνδρομο",tags:["metabolic","blood sugar","cholesterol","omega-3"],
+   supps:["Berberine","Green Tea Extract","Omega-3"],notes:"Διατροφική παρέμβαση"},
+  {cat:"Βάρος & Μεταβολισμός",cond:"Αυξημένη γλυκόζη / ινσουλινοαντίσταση",tags:["blood sugar","insulin resistance","diabetes","berberine"],
+   supps:["Berberine","Chromium"],notes:"Μηλόξυδο με προσοχή (όχι σε παλινδρόμηση)"},
+  {cat:"Βάρος & Μεταβολισμός",cond:"Αυξημένη LDL χοληστερόλη",tags:["cholesterol","LDL","cardiovascular"],
+   supps:["Red Yeast Rice","Phytosterols","Cynara","Green Tea Extract"],notes:"Έλεγχος αλληλεπιδράσεων + ηπατικών ενζύμων"},
+  {cat:"Βάρος & Μεταβολισμός",cond:"Αυξημένα τριγλυκερίδια",tags:["triglycerides","cardiovascular","omega-3"],
+   supps:["Omega-3 (ιχθυέλαιο)","Krill Oil"],notes:""},
+  {cat:"Βάρος & Μεταβολισμός",cond:"Λιπόκαυση κατά άσκηση",tags:["weight","fat burning","carnitine","exercise"],
+   supps:["L-Carnitine"],notes:"Μαζί με άσκηση και διατροφή"},
+  // ── ΚΑΡΔΙΑ / ΚΥΚΛΟΦΟΡΙΑ ──────────────────────
+  {cat:"Καρδιά & Κυκλοφορία",cond:"Ήπια υπέρταση",tags:["blood pressure","hypertension","cardiovascular","garlic"],
+   supps:["Garlic (σκόρδο)","Quercetin","Magnesium (ταυρικό)","Hawthorn"],notes:"Δεν αντικαθιστούν αντιυπερτασική αγωγή"},
+  {cat:"Καρδιά & Κυκλοφορία",cond:"Καρδιαγγειακή πρόληψη",tags:["cardiovascular","prevention","omega-3","CoQ10"],
+   supps:["Omega-3","CoQ10"],notes:"Βάσει παραγόντων κινδύνου"},
+  {cat:"Καρδιά & Κυκλοφορία",cond:"Στατίνες / μυαλγίες από στατίνη",tags:["statins","CoQ10","muscle pain"],
+   supps:["CoQ10"],notes:"Κατόπιν συνεννόησης με θεράποντα"},
+  {cat:"Καρδιά & Κυκλοφορία",cond:"Κακή κυκλοφορία / μικροκυκλοφορία",tags:["circulation","cardiovascular","ginkgo","pycnogenol"],
+   supps:["Ginkgo","Pycnogenol","Hawthorn"],notes:"Έλεγχος αντιπηκτικής αγωγής"},
+  {cat:"Καρδιά & Κυκλοφορία",cond:"Αντιθρομβωτική υποστήριξη",tags:["blood clots","thrombosis","nattokinase"],
+   supps:["Nattokinase"],notes:"Αυστηρός έλεγχος αντενδείξεων + ιατρική έγκριση"},
+  // ── ΟΣΤΑ / ΑΡΘΡΩΣΕΙΣ ─────────────────────────
+  {cat:"Οστά & Αρθρώσεις",cond:"Οστεοπενία / οστεοπόρωση",tags:["bone","osteoporosis","calcium","vitamin d"],
+   supps:["Calcium","Vitamin D","Collagen"],notes:"Βάσει εξετάσεων και συνολικής πρόσληψης"},
+  {cat:"Οστά & Αρθρώσεις",cond:"Πόνος αρθρώσεων / οστεοαρθρίτιδα",tags:["joint","arthritis","pain","glucosamine"],
+   supps:["MSM","Glucosamine","Curcumin","Collagen"],notes:""},
+  {cat:"Οστά & Αρθρώσεις",cond:"Ρευματοειδής αρθρίτιδα",tags:["joint","arthritis","inflammation","curcumin"],
+   supps:["Curcumin","MSM","Glucosamine","Evening Primrose Oil"],notes:"Υποστηρικτικά + ιατρική παρακολούθηση"},
+  {cat:"Οστά & Αρθρώσεις",cond:"Μυϊκός / οστικός τραυματισμός",tags:["injury","recovery","bone","collagen"],
+   supps:["Collagen","Curcumin","Protein","Vitamin D","Calcium"],notes:""},
+  // ── ΓΥΝΑΙΚΕΣ / ΕΙΔΙΚΕΣ ΟΜΑΔΕΣ ───────────────
+  {cat:"Γυναίκες & Ειδικές Ομάδες",cond:"PMS / προεμμηνορροϊκό σύνδρομο",tags:["women","PMS","hormones","vitex"],
+   supps:["Vitex Agnus Castus","Evening Primrose Oil"],notes:"EPO για μαστάλγια"},
+  {cat:"Γυναίκες & Ειδικές Ομάδες",cond:"Εμμηνόπαυση / εξάψεις",tags:["women","menopause","hormones","black cohosh"],
+   supps:["Black Cohosh (Βασιλικός Πολτός)","Sage"],notes:""},
+  {cat:"Γυναίκες & Ειδικές Ομάδες",cond:"Γονιμότητα άνδρα / χαμηλή λίμπιντο",tags:["men","testosterone","libido","zinc"],
+   supps:["Zinc","Tribulus","Ashwagandha"],notes:"Μετά από αξιολόγηση"},
+  {cat:"Γυναίκες & Ειδικές Ομάδες",cond:"Καλοήθης υπερπλασία προστάτη",tags:["men","prostate","BPH","saw palmetto"],
+   supps:["Saw Palmetto"],notes:"Ήπια-μέτρια συμπτώματα + ιατρική διάγνωση"},
+  {cat:"Γυναίκες & Ειδικές Ομάδες",cond:"Vegan / νηστεία",tags:["vegan","vegetarian","B12","iron","omega-3"],
+   supps:["Vegan Protein","Vitamin B12","Vegan Iron","Vegan Calcium","Vegan Zinc","Folate","Vegan Omega-3"],notes:"Βάσει διατροφής + εξετάσεις"},
+  {cat:"Γυναίκες & Ειδικές Ομάδες",cond:"Εγκυμοσύνη / προσπάθεια σύλληψης",tags:["pregnancy","fertility","women","folate"],
+   supps:["Folate","Omega-3"],notes:"Άλλα μόνο κατόπιν ιατρικής οδηγίας"},
+];
+
+function getHandbookRecommendations(answers,goal){
+  var results=[];
+  var health=(answers.health||[]).filter(function(h){return h!=="None";});
+  var supp=(answers.current_supplements&&answers.current_supplements.presets)||[];
+  var diet=answers.diet_now||"";
+  var sex=answers.sex||"";
+  var matched={};
+
+  HANDBOOK_PROTOCOLS.forEach(function(proto){
+    var score=0;
+    var reasons=[];
+    var tags=proto.tags||[];
+
+    // Goal matching
+    if(goal==="loss"&&(tags.includes("weight")||tags.includes("metabolic")||tags.includes("fat burning"))){score+=3;reasons.push("weight loss goal");}
+    if(goal==="gain"&&(tags.includes("muscle")||tags.includes("sports")||tags.includes("protein"))){score+=3;reasons.push("muscle gain goal");}
+    if(goal==="checkup"&&(tags.includes("immune")||tags.includes("anti-aging")||tags.includes("longevity"))){score+=2;reasons.push("wellness goal");}
+
+    // Health conditions
+    health.forEach(function(cond){
+      if(cond.toLowerCase().includes("diabetes")||cond.toLowerCase().includes("pre-diabetes")){
+        if(tags.includes("blood sugar")||tags.includes("insulin resistance")){score+=5;reasons.push("T2DM");}
+      }
+      if(cond.toLowerCase().includes("hypertension")){
+        if(tags.includes("blood pressure")||tags.includes("hypertension")||tags.includes("cardiovascular")){score+=5;reasons.push("hypertension");}
+      }
+      if(cond.toLowerCase().includes("cholesterol")){
+        if(tags.includes("cholesterol")||tags.includes("LDL")||tags.includes("triglycerides")){score+=5;reasons.push("high cholesterol");}
+      }
+      if(cond.toLowerCase().includes("thyroid")){
+        if(tags.includes("fatigue")||tags.includes("energy")){score+=3;reasons.push("thyroid");}
+      }
+      if(cond.toLowerCase().includes("kidney")){
+        if(tags.includes("gut")||tags.includes("hydration")){score+=2;reasons.push("kidney");}
+      }
+    });
+
+    // Diet/lifestyle
+    if((diet.toLowerCase().includes("vegan")||diet.toLowerCase().includes("vegetarian"))&&tags.includes("vegan")){score+=5;reasons.push("vegan diet");}
+    if(sex==="Female"&&(tags.includes("women")||tags.includes("PMS")||tags.includes("menopause"))){score+=4;reasons.push("female");}
+    if(sex==="Male"&&(tags.includes("men")||tags.includes("testosterone")||tags.includes("prostate"))){score+=4;reasons.push("male");}
+
+    // Activity level
+    var act=answers.activity||"";
+    if((act.includes("5+")||act.includes("Very active"))&&(tags.includes("sports")||tags.includes("recovery"))){score+=3;reasons.push("active lifestyle");}
+
+    // Blood panel
+    var bp=answers.blood_panel||{};
+    if(!bp.skipped){
+      if(parseFloat(bp.glucose)>100&&tags.includes("blood sugar")){score+=4;reasons.push("elevated glucose");}
+      if(parseFloat(bp.ldl)>130&&(tags.includes("cholesterol")||tags.includes("LDL"))){score+=4;reasons.push("elevated LDL");}
+      if(parseFloat(bp.triglyc)>150&&tags.includes("triglycerides")){score+=4;reasons.push("elevated triglycerides");}
+      if(parseFloat(bp.crp)>2&&tags.includes("inflammation")){score+=3;reasons.push("elevated CRP");}
+      if(parseFloat(bp.vitamin_d)<30&&tags.includes("vitamin d")){score+=3;reasons.push("low Vit D");}
+      if(parseFloat(bp.b12)<300&&tags.includes("B12")){score+=4;reasons.push("low B12");}
+    }
+
+    // Supplement gaps
+    proto.supps.forEach(function(s){
+      var sLow=s.toLowerCase();
+      var alreadyHas=supp.some(function(p){return p.toLowerCase().includes(sLow.split(" ")[0])||sLow.includes(p.toLowerCase().split(" ")[0]);});
+      if(alreadyHas)score-=1;
+    });
+
+    if(score>=3&&!matched[proto.cond]){
+      matched[proto.cond]=true;
+      results.push({proto:proto,score:score,reasons:reasons});
+    }
+  });
+
+  results.sort(function(a,b){return b.score-a.score;});
+  return results.slice(0,5);
+}
+
+function buildHandbookCard(accent){
+  var recs=getHandbookRecommendations(ANSWERS,GOAL);
+  if(!recs.length)return"";
+
+  var rows=recs.map(function(item){
+    var p=item.proto;
+    var catColors={
+      "Πεπτικό":"#1D9E75","Ανοσοποιητικό":"#639922","Κούραση & Εγκέφαλος":"#7F77DD",
+      "Αθλητές & Άσκηση":"#378ADD","Beauty & Anti-aging":"#D4537E","Βάρος & Μεταβολισμός":"#BA7517",
+      "Καρδιά & Κυκλοφορία":"#E24B4A","Οστά & Αρθρώσεις":"#888780","Γυναίκες & Ειδικές Ομάδες":"#D85A30"
+    };
+    var col=catColors[p.cat]||accent;
+    return "<div style='background:rgba(255,255,255,0.02);border:1px solid "+col+"28;border-left:3px solid "+col+";border-radius:8px;padding:11px 13px;margin-bottom:8px'>"+
+      "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:5px'>"+
+        "<div>"+
+          "<span style='font-size:9px;font-family:monospace;color:"+col+";letter-spacing:1px'>"+p.cat.toUpperCase()+"</span>"+
+          "<div style='color:#dce9f5;font-size:13px;font-weight:700;margin-top:2px'>"+p.cond+"</div>"+
+        "</div>"+
+        "<div style='text-align:right;flex-shrink:0;margin-left:10px'>"+
+          "<div style='font-size:9px;font-family:monospace;color:#3d5a70'>Λόγοι: "+item.reasons.slice(0,2).join(", ")+"</div>"+
+        "</div>"+
+      "</div>"+
+      "<div style='display:flex;flex-wrap:wrap;gap:4px;margin-bottom:"+(p.notes?"5":"0")+"px'>"+
+        p.supps.map(function(s){
+          return "<span style='padding:2px 8px;border-radius:7px;background:"+col+"14;border:1px solid "+col+"30;font-size:10px;font-family:monospace;color:"+col+"'>"+s+"</span>";
+        }).join("")+
+      "</div>"+
+      (p.notes?"<div style='font-size:10px;color:#4a6070;font-style:italic;line-height:1.4'>"+p.notes+"</div>":"")+
+    "</div>";
+  }).join("");
+
+  return "<div style='background:rgba(255,255,255,0.025);border:1px solid rgba(56,189,248,0.2);border-left:3px solid #38bdf8;border-radius:11px;padding:17px;margin-bottom:14px'>"+
+    "<div style='color:#38bdf8;font-family:serif;font-size:15px;margin-bottom:3px'>📋 Πρωτόκολλα Εγχειριδίου</div>"+
+    "<div style='color:#3d5a70;font-size:10px;font-family:monospace;margin-bottom:12px'>"+recs.length+" ταιριαστά πρωτόκολλα βάσει προφίλ ασθενούς · Biologiko Xorio handbook</div>"+
+    rows+
+    "<div style='font-size:9px;color:#1e3045;font-family:monospace;margin-top:8px'>Ο πίνακας αποτελεί σύνοψη του εγχειριδίου · Ελέγχετε πάντα φαρμακευτική αγωγή, χρόνια νοσήματα και αντενδείξεις</div>"+
+  "</div>";
 }
 
 
