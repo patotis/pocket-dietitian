@@ -1,4 +1,15 @@
-<!DOCTYPE html>
+<!D
+  thyroid:{name:"Thyroid",icon:"🦋",color:"#a78bfa",tips:[
+    "Selenium is essential for converting T4 to active T3 — 200mcg/day reduces anti-TPO antibodies by 36% in Hashimoto's (Gärtner 2002)",
+    "Iodine adequacy is critical — both deficiency AND excess impair thyroid function. Seaweed, eggs, and dairy are key sources",
+    "Avoid large amounts of raw cruciferous vegetables if hypothyroid — goitrogens block iodine uptake (cooking deactivates them)",
+    "Vitamin D deficiency is strongly associated with Hashimoto's — optimise to 40–60 ng/mL",
+    "Stress chronically elevates cortisol which suppresses TSH and reduces T3 conversion — HPA axis management is key",
+    "Iron deficiency impairs thyroid peroxidase activity — check ferritin alongside thyroid panel",
+    "Zinc and magnesium are cofactors for thyroid hormone synthesis — deficiencies worsen both hypo and hyper states",
+    "L-Tyrosine is the amino acid backbone of thyroid hormones — ensure adequate dietary protein"
+  ]},
+OCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -1271,19 +1282,159 @@ function computeTwinMetrics(isLoss){
 
   var activeConditions=health.filter(function(h){ return h!=="None" && CONDITIONS_META[h]; });
 
+  // ── Blood panel integration ─────────────────────────────────
+  var bp=ANSWERS.blood_panel||{};
+  var bpUsed=!bp.skipped&&Object.keys(bp).some(function(k){return k!=="skipped"&&bp[k]!=="";});
+  if(bpUsed){
+    var gl=parseFloat(bp.glucose);
+    var hba=parseFloat(bp.hba1c);
+    var ins=parseFloat(bp.insulin);
+    var tc=parseFloat(bp.total_chol);
+    var ldl=parseFloat(bp.ldl);
+    var hdl=parseFloat(bp.hdl);
+    var tg=parseFloat(bp.triglyc);
+    var alt=parseFloat(bp.alt);
+    var ast=parseFloat(bp.ast);
+    var ggt=parseFloat(bp.ggt);
+    var cr=parseFloat(bp.creatinine);
+    var ure=parseFloat(bp.urea);
+    var ua=parseFloat(bp.uric_acid);
+    var tsh=parseFloat(bp.tsh);
+    var hgb=parseFloat(bp.hemoglobin);
+    var fer=parseFloat(bp.ferritin);
+    var b12v=parseFloat(bp.b12);
+    var d3v=parseFloat(bp.vitamin_d);
+    var crpv=parseFloat(bp.crp);
+    var testo=parseFloat(bp.testosterone);
+    var cort=parseFloat(bp.cortisol);
+
+    // Heart adjustments
+    if(!isNaN(tc)&&tc>240) heart=Math.min(heart,60);
+    else if(!isNaN(tc)&&tc>200) heart=Math.min(heart,75);
+    if(!isNaN(ldl)&&ldl>160) heart=Math.min(heart,55);
+    else if(!isNaN(ldl)&&ldl>130) heart=Math.min(heart,70);
+    if(!isNaN(hdl)&&hdl<35) heart=Math.min(heart,55);
+    else if(!isNaN(hdl)&&hdl<40) heart=Math.min(heart,70);
+    if(!isNaN(tg)&&tg>200) heart=Math.min(heart,60);
+    if(!isNaN(crpv)&&crpv>3) heart=Math.min(heart,65);
+    if(!isNaN(gl)&&gl>126) heart=Math.min(heart,65);
+
+    // Liver adjustments
+    if(!isNaN(alt)&&alt>80) liver=Math.min(liver,45);
+    else if(!isNaN(alt)&&alt>40) liver=Math.min(liver,65);
+    if(!isNaN(ggt)&&ggt>100) liver=Math.min(liver,45);
+    else if(!isNaN(ggt)&&ggt>50) liver=Math.min(liver,65);
+    if(!isNaN(tg)&&tg>200) liver=Math.min(liver,70);
+    if(!isNaN(crpv)&&crpv>3) liver=Math.min(liver,70);
+
+    // Kidney adjustments
+    if(!isNaN(cr)&&cr>1.5) kidney=Math.min(kidney,45);
+    else if(!isNaN(cr)&&cr>1.2) kidney=Math.min(kidney,65);
+    if(!isNaN(ua)&&ua>9) kidney=Math.min(kidney,55);
+    else if(!isNaN(ua)&&ua>6.8) kidney=Math.min(kidney,72);
+    if(!isNaN(ure)&&ure>30) kidney=Math.min(kidney,55);
+
+    // Brain adjustments
+    if(!isNaN(d3v)&&d3v<12) brain=Math.min(brain,50);
+    else if(!isNaN(d3v)&&d3v<20) brain=Math.min(brain,65);
+    if(!isNaN(b12v)&&b12v<150) brain=Math.min(brain,45);
+    else if(!isNaN(b12v)&&b12v<200) brain=Math.min(brain,62);
+    if(!isNaN(gl)&&gl>125) brain=Math.min(brain,68);
+    if(!isNaN(crpv)&&crpv>3) brain=Math.min(brain,72);
+
+    // Pancreas adjustments
+    if(!isNaN(gl)&&gl>126){ pancreas=Math.min(pancreas,40);}
+    else if(!isNaN(gl)&&gl>100){ pancreas=Math.min(pancreas,62);}
+    if(!isNaN(hba)&&hba>6.5) pancreas=Math.min(pancreas,38);
+    else if(!isNaN(hba)&&hba>5.7) pancreas=Math.min(pancreas,60);
+    if(!isNaN(ins)&&ins>20) pancreas=Math.min(pancreas,50);
+
+    // BioAge adjustment from blood panel
+    if(!isNaN(crpv)&&crpv>3) bioAge=Math.min(80,bioAge+3);
+    if(!isNaN(hba)&&hba>6.5) bioAge=Math.min(80,bioAge+4);
+    else if(!isNaN(hba)&&hba>5.7) bioAge=Math.min(80,bioAge+2);
+    if(!isNaN(d3v)&&d3v<20) bioAge=Math.min(80,bioAge+2);
+    if(!isNaN(tc)&&tc>240) bioAge=Math.min(80,bioAge+2);
+    if(!isNaN(d3v)&&d3v>=40&&d3v<80) bioAge=Math.max(18,bioAge-1);
+    if(!isNaN(hdl)&&hdl>60) bioAge=Math.max(18,bioAge-1);
+    bioAgeColor=bioAge<age?"#4ade80":bioAge===age?"#22d3ee":bioAge<=age+3?"#fbbf24":"#f87171";
+
+    // CRP → inflammation
+    if(!isNaN(crpv)){
+      if(crpv>3){inflammScore+=3;} else if(crpv>1){inflammScore+=1;}
+      inflammLabel=inflammScore<=1?"Low":inflammScore<=3?"Moderate":inflammScore<=5?"High":"Very High";
+      inflammColor=inflammScore<=1?"#4ade80":inflammScore<=3?"#22d3ee":inflammScore<=5?"#fbbf24":"#f87171";
+    }
+
+    // MetScore from blood
+    if(!isNaN(gl)&&gl>126) metScore=Math.min(metScore,50);
+    else if(!isNaN(gl)&&gl>100) metScore=Math.min(metScore,70);
+    if(!isNaN(hba)&&hba>6.5) metScore=Math.min(metScore,48);
+    if(!isNaN(tg)&&tg>200) metScore=Math.min(metScore,65);
+    metColor=metScore>=75?"#4ade80":metScore>=55?"#22d3ee":metScore>=35?"#fbbf24":"#f87171";
+
+    // Nutrient risks from blood
+    if(!isNaN(d3v)&&d3v<20&&!nutrientRisks.includes("Vit D")) nutrientRisks.push("Vit D");
+    if(!isNaN(b12v)&&b12v<300&&!nutrientRisks.includes("B12")) nutrientRisks.push("B12");
+    if(!isNaN(fer)&&fer<20&&!nutrientRisks.includes("Iron")) nutrientRisks.push("Iron");
+    if(!isNaN(hgb)&&hgb<12&&!nutrientRisks.includes("Iron")) nutrientRisks.push("Iron");
+    if(!isNaN(tsh)&&tsh>4&&!nutrientRisks.includes("Iodine/Selenium")) nutrientRisks.push("Iodine/Selenium");
+    if(!isNaN(crpv)&&crpv>2&&!nutrientRisks.includes("Omega-3")) nutrientRisks.push("Omega-3");
+    if(!isNaN(gl)&&gl>100&&!nutrientRisks.includes("Magnesium")) nutrientRisks.push("Magnesium");
+    nutrientRisks=nutrientRisks.slice(0,8);
+
+    // Thyroid score (new organ)
+    var thyroid=organScore(90,[
+      hasThyroid?-25:0,
+      (!isNaN(tsh)&&tsh>10)?-40:(!isNaN(tsh)&&tsh>4)?-20:(!isNaN(tsh)&&tsh<0.4)?-15:0,
+      (!isNaN(d3v)&&d3v<20)?-8:0,
+      age>45?-3:0
+    ]);
+
+    var bpInsights=[];
+    if(!isNaN(gl)&&gl>100) bpInsights.push({marker:"Glucose",val:gl,unit:"mg/dL",status:gl>126?"High":"Pre-diabetic range",color:gl>126?"#f87171":"#fbbf24"});
+    if(!isNaN(ldl)&&ldl>100) bpInsights.push({marker:"LDL",val:ldl,unit:"mg/dL",status:ldl>160?"High":"Borderline",color:ldl>160?"#f87171":"#fbbf24"});
+    if(!isNaN(crpv)&&crpv>1) bpInsights.push({marker:"CRP",val:crpv,unit:"mg/L",status:crpv>3?"High inflammation":"Mild inflammation",color:crpv>3?"#f87171":"#fbbf24"});
+    if(!isNaN(tsh)&&(tsh>4||tsh<0.4)) bpInsights.push({marker:"TSH",val:tsh,unit:"μIU/mL",status:tsh>4?"Hypothyroid range":"Hyperthyroid range",color:"#a78bfa"});
+    if(!isNaN(d3v)&&d3v<30) bpInsights.push({marker:"Vit D",val:d3v,unit:"ng/mL",status:d3v<12?"Deficient":"Insufficient",color:d3v<12?"#f87171":"#fbbf24"});
+    if(!isNaN(b12v)&&b12v<300) bpInsights.push({marker:"B12",val:b12v,unit:"pg/mL",status:"Low",color:"#f87171"});
+    if(!isNaN(alt)&&alt>40) bpInsights.push({marker:"ALT",val:alt,unit:"U/L",status:alt>80?"High":"Mildly elevated",color:alt>80?"#f87171":"#fbbf24"});
+    if(!isNaN(tg)&&tg>150) bpInsights.push({marker:"Triglycerides",val:tg,unit:"mg/dL",status:tg>200?"High":"Borderline",color:tg>200?"#f87171":"#fbbf24"});
+
+    return{
+      bioAge,bioAgeColor,age,improvedBioAge,
+      inflammLabel,inflammColor,inflammScore,
+      cvLabel,cvColor,cvScore,
+      metScore,metColor,
+      heart,liver,gut,brain,kidney,pancreas,thyroid,
+      grade,gradeColor,
+      nutrientRisks,
+      bmi,bmiLabel,
+      actScore,dietQ,
+      activeConditions,
+      CONDITIONS_META,
+      hasT2DM,hasHTN,hasChol,hasThyroid,hasIBS,hasKidney,
+      bpUsed,bpInsights
+    };
+  }
+
+  // thyroid score without blood panel
+  var thyroid=organScore(90,[hasThyroid?-25:0,age>45?-3:0]);
+
   return{
     bioAge,bioAgeColor,age,improvedBioAge,
     inflammLabel,inflammColor,inflammScore,
     cvLabel,cvColor,cvScore,
     metScore,metColor,
-    heart,liver,gut,brain,kidney,pancreas,
+    heart,liver,gut,brain,kidney,pancreas,thyroid,
     grade,gradeColor,
     nutrientRisks,
     bmi,bmiLabel,
     actScore,dietQ,
     activeConditions,
     CONDITIONS_META,
-    hasT2DM,hasHTN,hasChol,hasThyroid,hasIBS,hasKidney
+    hasT2DM,hasHTN,hasChol,hasThyroid,hasIBS,hasKidney,
+    bpUsed:false,bpInsights:[]
   };
 }
 
@@ -1490,9 +1641,11 @@ function buildDigitalTwin(isLoss,accent){
       var organs=[
         {key:"brain",name:"Brain",score:m.brain},
         {key:"heart",name:"Heart",score:m.heart},
+        {key:"thyroid",name:"Thyroid",score:m.thyroid},
         {key:"liver",name:"Liver",score:m.liver},
         {key:"pancreas",name:"Pancreas",score:m.pancreas},
         {key:"kidney",name:"Kidneys",score:m.kidney},
+        {key:"gut",name:"Gut",score:m.gut},
         {key:"gut",name:"Gut",score:m.gut},
       ];
       return organs.map(function(o){
@@ -1515,6 +1668,20 @@ function buildDigitalTwin(isLoss,accent){
 
   // ── Active conditions panel
   bfCardHtml+
+  (m.bpUsed&&m.bpInsights&&m.bpInsights.length?(
+    '<div style="background:rgba(248,113,113,0.04);border:1px solid rgba(248,113,113,0.2);border-left:3px solid #f87171;border-radius:10px;padding:12px 14px;margin-bottom:12px">'+
+    '<div class="mono" style="font-size:8px;color:#f87171;letter-spacing:1.5px;margin-bottom:8px">🩸 BLOOD PANEL FINDINGS</div>'+
+    m.bpInsights.map(function(b){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
+        '<span style="font-size:11px;color:#7a9ab8">'+b.marker+'</span>'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<span style="font-size:12px;font-family:monospace;font-weight:700;color:'+b.color+'">'+b.val+' <span style="font-size:9px;opacity:0.7">'+b.unit+'</span></span>'+
+          '<span style="font-size:10px;font-family:monospace;padding:2px 6px;border-radius:5px;background:'+b.color+'18;color:'+b.color+'">'+b.status+'</span>'+
+        '</div>'+
+      '</div>';
+    }).join("")+
+  '</div>'
+  ):"") +
 
   (m.activeConditions&&m.activeConditions.length?
     '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 15px;margin-bottom:12px">'+
@@ -1572,7 +1739,16 @@ var ORGAN_DETAILS_DATA={
   pancreas:{name:"Pancreas",icon:"⚙️",color:"#22d3ee",tips:["Chronic postprandial glucose spikes accelerate pancreatic beta-cell burnout — the GI of carbohydrate sources matters as much as total carbohydrate quantity","Each 5% body weight reduction reduces T2DM risk by ~50% in pre-diabetic patients — the most powerful single intervention available","Time-restricted eating (16:8) reduces fasting insulin and improves beta-cell function independently of caloric restriction (Wilkinson et al. 2020)"]},
   kidney:{name:"Kidneys",icon:"🫘",color:"#38bdf8",tips:["Adequate hydration (2.5–3L/day) maintains GFR, reduces kidney stone risk by 50%, and supports urinary tract health","Dietary potassium (≥3500mg/day from whole foods) reduces renal tubular acid load and is protective against chronic kidney disease progression","Excessive supplemental protein (>2.5g/kg) accelerates GFR decline in individuals with existing renal impairment — protein should be targeted, not excessive"]},
   gut:{name:"Gut & Microbiome",icon:"🦠",color:"#4ade80",tips:["30+ diverse plant foods per week is the strongest evidence-based dietary intervention for microbiome diversity — each plant species feeds different bacterial strains (Sonnenburg et al. 2021)","Prebiotic fibre (inulin, FOS, arabinoxylan) is fermented to butyrate — the primary energy source for colonocytes and an anti-inflammatory SCFA","Chronic stress directly impairs gut barrier function via CRH (corticotropin-releasing hormone) — the gut-brain axis is bidirectional"]},
-};
+  thyroid:{name:"Thyroid",icon:"🦋",color:"#a78bfa",tips:[
+    "Selenium 200mcg/day reduces anti-TPO antibodies by 36% in Hashimoto thyroiditis (Gartner 2002)",
+    "Both iodine deficiency AND excess impair thyroid — avoid excess iodine supplements with existing thyroid disease",
+    "Raw cruciferous vegetables in large amounts can block iodine uptake — cooking deactivates goitrogens",
+    "Vitamin D deficiency is strongly linked to autoimmune thyroiditis — optimise to 40-60 ng/mL",
+    "Chronic cortisol elevation suppresses TSH and reduces T4 to T3 conversion — stress management is essential",
+    "Iron deficiency impairs thyroid peroxidase enzyme activity — always check ferritin alongside TSH",
+    "L-Tyrosine is the amino acid backbone of thyroid hormones T3 and T4 — ensure adequate protein intake",
+    "Zinc and magnesium are cofactors for thyroid hormone synthesis — deficiencies worsen both hypo and hyper states"
+  ]}};
 
 var _twinConditions=[];
 function twinConditionFocusIdx(i){
